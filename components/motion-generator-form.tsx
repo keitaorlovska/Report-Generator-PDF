@@ -255,7 +255,7 @@ async function scrapeAll() {
               ? {
                   ...r,
                   motions,
-                  context: result.data.context ?? "",
+                  context: result.data?.context ?? "",
                   error: "",
                   isLoading: false,
                 }
@@ -321,10 +321,8 @@ async function downloadPdf(company: string, report: any) {
   });
 
   if (!res.ok) {
-    const txt = await res.text();
-console.error("PDF export failed:", res.status, txt);
-alert(`PDF export failed: ${res.status}`);
-return;
+    alert("PDF export failed");
+    return;
   }
 
   const blob = await res.blob();
