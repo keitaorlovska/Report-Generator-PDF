@@ -1,0 +1,21 @@
+# node / build
+node_modules/
+.next/
+*.zip
+
+# env
+.env*
+.env.local
+
+# windows / desktop junk
+*.lnk
+desktop.ini
+Thumbs.db
+
+# documents / data
+*.pdf
+*.xls
+*.xlsx
+
+# misc
+School/

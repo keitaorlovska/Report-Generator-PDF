@@ -1,0 +1,884 @@
+[
+  {
+    "id": "fe78e7bc-0be0-4830-ad1b-5c51b4345d72",
+    "company": "Bauer Media Outdoor",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:38.561Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Bauer Media Outdoor",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "e588f9e3-9c6d-4ee2-997e-36fbdf3d19a3",
+    "company": "Randstad",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:38.277Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Randstad",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "ec6584b5-eacb-4a11-b42c-2e139c3c694f",
+    "company": "BGTS",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:37.995Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "BGTS",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "7186e7b2-b9b4-4b76-8848-f39c3f98a95c",
+    "company": "Unilever",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:37.714Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Unilever",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "da13a5a9-eb3e-42ba-866e-21d2a7760997",
+    "company": "Magnum Ice Cream Company",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:37.428Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Magnum Ice Cream Company",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "72e522a1-9c2a-40e2-9249-5c6dba337dd9",
+    "company": "Miltenyi Biomedicine",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:37.147Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Miltenyi Biomedicine",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "e4f1b61e-2a7d-404d-b8e1-19d8e740edd8",
+    "company": "Marynissen",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:36.864Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Marynissen",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "a6ae4b18-5857-40f9-b4bf-3cd391351dbc",
+    "company": "ING Romania",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:36.582Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "ING Romania",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "c99df714-bc0b-4490-bd54-ed8e8ad7769b",
+    "company": "Kystverket",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:36.297Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Kystverket",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "59e9b381-e967-468d-8a23-31ad21f06056",
+    "company": "Huseierne Norge",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:36.013Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Huseierne Norge",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "09f0e36c-31a7-4903-8367-16d58d6e1574",
+    "company": "AG Insurance Belgium",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:35.731Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "AG Insurance Belgium",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "f3c0af68-cbf8-4b5a-9f88-6689588a4658",
+    "company": "Statens vegvesen",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:35.445Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Statens vegvesen",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "1b236a94-98f7-45af-a943-9a38d674a23f",
+    "company": "Saudi Aramco",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:35.147Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Saudi Aramco",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "1911867d-fc12-4be6-9ac0-edde57138d90",
+    "company": "Europol",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:34.854Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Europol",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "5370acf0-8e03-418b-8fc2-3440a539b234",
+    "company": "Bauer Media Outdoor",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:18.347Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Bauer Media Outdoor",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "18543d85-876b-452f-95e3-3963888923db",
+    "company": "Randstad",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:18.064Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Randstad",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "33d1f426-58c8-44db-93b3-fe25b7a65fcf",
+    "company": "BGTS",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:17.780Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "BGTS",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "6183ea83-110a-4b45-86d9-314b7e1dd232",
+    "company": "Unilever",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:17.491Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Unilever",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "1ab712be-e075-4e11-beb6-33b0ba06953b",
+    "company": "Magnum Ice Cream Company",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:17.197Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Magnum Ice Cream Company",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "60b7c89f-e872-4c2d-ad89-15fdc0a25310",
+    "company": "Miltenyi Biomedicine",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:16.911Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Miltenyi Biomedicine",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "45c95b43-32ea-48d8-88ab-188aa2bccba8",
+    "company": "Marynissen",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:16.641Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Marynissen",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "54b8e78d-f9d6-41a6-9484-073cdd99df4f",
+    "company": "ING Romania",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:16.348Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "ING Romania",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "9f0ae2a9-7e82-4859-a172-bfe9ef890eef",
+    "company": "Kystverket",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:16.082Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Kystverket",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "a7296eac-db99-4ab4-b401-f791a4c3297e",
+    "company": "Huseierne Norge",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:15.815Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Huseierne Norge",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "763a3670-99dd-4234-9836-90b2c16a31be",
+    "company": "AG Insurance Belgium",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:15.529Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "AG Insurance Belgium",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "a2ca5f17-12cb-4b51-9cd9-35c9f5009b1b",
+    "company": "Statens vegvesen",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:15.247Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Statens vegvesen",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "f2f40779-c3be-477a-ba48-6c0e0dff036d",
+    "company": "Saudi Aramco",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:14.964Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Saudi Aramco",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "dd930406-623f-4222-930f-7cad28948dd2",
+    "company": "Europol",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:14.664Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Europol",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "95ab126d-cb20-4e83-b49e-36c3114481d8",
+    "company": "Bauer Media Outdoor",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:10.765Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Bauer Media Outdoor",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "bb93fb4f-35ab-46a9-9387-569ef8bc0b6b",
+    "company": "Randstad",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:10.484Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Randstad",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "28e69f76-ab06-4419-ae8d-26b19a0654e0",
+    "company": "BGTS",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:10.201Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "BGTS",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "8b14db43-b75c-4edd-bc56-aca7f38d246e",
+    "company": "Unilever",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:09.914Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Unilever",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "4eb64316-db93-4879-8f2c-ce91cd804186",
+    "company": "Magnum Ice Cream Company",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:09.634Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Magnum Ice Cream Company",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "57bc557e-2a10-41df-84c6-8491ed1401ae",
+    "company": "Miltenyi Biomedicine",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:09.348Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Miltenyi Biomedicine",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "c63a49f6-4b72-406e-a77b-33db775a6dee",
+    "company": "Marynissen",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:09.064Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Marynissen",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "1c34f5f5-8f33-458b-9f7f-12662b93930c",
+    "company": "ING Romania",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:08.799Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "ING Romania",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "f04cf277-ad19-4ed9-bb7e-3aac57a240af",
+    "company": "Kystverket",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:08.514Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Kystverket",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "c25d938d-72a7-4a5e-9f7e-5a7489325319",
+    "company": "Huseierne Norge",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:08.235Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Huseierne Norge",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "252c4548-728f-4421-b712-2e28a498aa88",
+    "company": "AG Insurance Belgium",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:07.931Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "AG Insurance Belgium",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "073b076f-28ef-4566-a408-40377d7ed54b",
+    "company": "Statens vegvesen",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:07.650Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Statens vegvesen",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "67182ef2-0499-45ba-ab77-2d7fef1cffe7",
+    "company": "Saudi Aramco",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:07.383Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Saudi Aramco",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  },
+  {
+    "id": "21debe20-4369-47b4-8e5a-e1b11a3bb9e3",
+    "company": "Europol",
+    "hours": 24,
+    "createdAt": "2026-01-26T13:17:07.083Z",
+    "articlesUpdatedAt": null,
+    "report": {
+      "company": "Europol",
+      "date": "2026-01-26",
+      "what_changed": [
+        "Found 0 articles in the last 24h (placeholder)."
+      ],
+      "why_it_matters": [
+        "This is where we add interpretation (placeholder)."
+      ],
+      "key_stories": [],
+      "watchpoints": [
+        "If a narrative repeats across multiple sources, flag it."
+      ]
+    }
+  }
+]
