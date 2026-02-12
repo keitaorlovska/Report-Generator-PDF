@@ -1,8 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  poweredByHeader: false,
-}
+  // Newer Next.js
+  serverExternalPackages: ["pdfkit"],
 
-export default nextConfig
+  // Older Next.js (still used in some versions)
+  experimental: {
+    serverComponentsExternalPackages: ["pdfkit"],
+  },
+};
 
+export default nextConfig;
