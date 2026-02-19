@@ -3,12 +3,9 @@ export const runtime = "nodejs"; // ensure Node runtime (not Edge)
 // Force Vercel to include pdfkit in the serverless bundle:
 import "pdfkit";
 
-
 import { NextResponse } from "next/server";
 import path from "path";
 import { spawn } from "child_process";
-
-export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
@@ -50,4 +47,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "PDF export failed" }, { status: 500 });
   }
 }
-
