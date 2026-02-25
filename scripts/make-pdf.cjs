@@ -17,6 +17,8 @@ function readStdin() {
     const inputRaw = await readStdin();
     const { company, report } = JSON.parse(inputRaw || "{}");
 
+    
+
     const doc = new PDFDocument({ margin: 48 });
 
     const fontPath = path.join(

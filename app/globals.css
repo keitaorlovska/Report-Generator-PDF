@@ -38,7 +38,7 @@
 
 
   .dark {
-    --background: 150 20% 8%;        /* very dark green/charcoal */
+    --background: 150 20% 8%;
     --foreground: 0 0% 98%;
 
     --card: 150 20% 11%;
@@ -47,8 +47,8 @@
     --popover: 150 20% 11%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 152 45% 55%;          /* softened green for dark */
-    --primary-foreground: 150 20% 10%;
+    --primary: 152 62% 25%; /* GREEN */
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 150 18% 16%;
     --secondary-foreground: 0 0% 98%;
@@ -59,13 +59,12 @@
     --accent: 150 18% 18%;
     --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
     --border: 150 15% 20%;
     --input: 150 15% 20%;
-    --ring: 152 45% 55%;
+    --ring: 152 62% 25%;
   }
+
+
 
 }
 

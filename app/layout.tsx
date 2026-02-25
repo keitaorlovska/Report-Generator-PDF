@@ -5,7 +5,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Debate Motion Generator | AI-Powered News-Based Motions",
+  title: "Daily Motion Generator | AI-Powered News-Based Reports",
   description: "Generate compelling debate motions based on recent news and trending topics using AI-powered web search.",
   keywords: ["debate", "motions", "AI", "news", "debate topics", "policy debate"],
 }
