@@ -68,7 +68,7 @@ export async function POST(req: Request) {
 
     // Single company: return the PDF directly
     if (pdfBuffers.length === 1) {
-      return new NextResponse(pdfBuffers[0], {
+      return new NextResponse(new Uint8Array(pdfBuffers[0]), {
         headers: {
           "Content-Type": "application/pdf",
           "Content-Disposition": `attachment; filename="${companies[0].name}-daily-brief.pdf"`,
