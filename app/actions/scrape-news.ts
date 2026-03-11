@@ -1,24 +1,10 @@
 "use server";
 
 import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
 import { setArticles, type StoredArticle } from "@/lib/memory-store";
-
-const COMPANIES = [
-  "Europol",
-  "Saudi Aramco",
-  "Statens vegvesen",
-  "AG Insurance",
-  "Huseierne",
-  "Kystverket",
-  "ING Romania",
-  "Marynissen",
-  "Miltenyi Biomedicine",
-  "Magnum Ice Cream Company",
-  "Unilever",
-  "BGTS",
-  "Randstad",
-  "Bauer Media Outdoor",
-] as const;
+import type { Company } from "@/data/companies";
 
 const QUERY_OVERRIDES: Record<string, string> = {
   "AG Insurance": "AG Insurance Belgium",
@@ -43,7 +29,19 @@ function extractJson(content: string) {
   return match ? match[0] : content;
 }
 
-export async function scrapeNewsAction() {
+function loadCompanies(): Company[] {
+  try {
+    const raw = fs.readFileSync(
+      path.join(process.cwd(), "data", "companies.json"),
+      "utf-8"
+    );
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export async function scrapeNewsAction(selectedCompanyIds?: string[]) {
   const apiKey = process.env.PERPLEXITY_API_KEY;
   if (!apiKey) {
     return { ok: false, error: "Missing PERPLEXITY_API_KEY" as const };
@@ -54,11 +52,20 @@ export async function scrapeNewsAction() {
     baseURL: "https://api.perplexity.ai",
   });
 
+  const allCompanies = loadCompanies();
+  const companyMap = new Map(allCompanies.map((c) => [c.id, c]));
+
+  const companiesToScrape: Company[] =
+    selectedCompanyIds && selectedCompanyIds.length > 0
+      ? selectedCompanyIds
+          .map((id) => companyMap.get(id))
+          .filter((c): c is Company => c !== undefined)
+      : allCompanies;
+
   const allArticles: StoredArticle[] = [];
 
-  // Scrape each company (sequential to be safe)
-  for (const company of COMPANIES) {
-    const query = QUERY_OVERRIDES[company] ?? company;
+  for (const company of companiesToScrape) {
+    const query = QUERY_OVERRIDES[company.name] ?? company.name;
 
     const response = await perplexity.chat.completions.create({
       model: "sonar",
@@ -111,7 +118,7 @@ Rules:
     for (const m of mentions) {
       if (!m?.link) continue;
       allArticles.push({
-        company,
+        company: company.name,
         title: m.headline ?? "(No headline)",
         url: m.link,
         source: m.source ?? "Unknown",
@@ -123,12 +130,11 @@ Rules:
     }
   }
 
-  // Save for Step 2
   setArticles(allArticles);
 
   return {
     ok: true,
     count: allArticles.length,
-    articles: allArticles.slice(0, 10), // send back small preview
+    articles: allArticles.slice(0, 10),
   };
 }
