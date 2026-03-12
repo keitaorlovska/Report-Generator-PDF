@@ -1,67 +1,38 @@
-// app/api/export/pdf-concise/route.ts
-// Mirrors the pattern of app/api/export/pdf/route.ts
-// Accepts: { reports: [{ company, brief, overall, risks }] }
-// Returns: raw PDF binary
-
-import { NextResponse } from "next/server";
-import { spawn }         from "child_process";
-import path              from "path";
-
-function runScript(input: object): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), "scripts", "make-pdf-concise.cjs");
-
-    const child = spawn(process.execPath, [scriptPath], {
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", (d: Buffer) => (stdout += d.toString()));
-    child.stderr.on("data", (d: Buffer) => (stderr += d.toString()));
-
-    child.on("close", (code) => {
-      if (code !== 0) {
-        console.error("make-pdf-concise stderr:", stderr);
-        return reject(new Error(`Script exited with code ${code}: ${stderr}`));
-      }
-      try {
-        resolve(Buffer.from(stdout.trim(), "base64"));
-      } catch (e) {
-        reject(new Error("Failed to decode base64 PDF output"));
-      }
-    });
-
-    child.stdin.write(JSON.stringify(input));
-    child.stdin.end();
-  });
-}
+﻿import { NextResponse } from "next/server"
+import { spawn } from "child_process"
+import path from "path"
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json()
+    const input = JSON.stringify(body)
+    const scriptPath = path.join(process.cwd(), "scripts", "make-pdf-concise.cjs")
 
-    // body shape: { reports: [{ company, brief, overall, risks }] }
-    if (!body || (!Array.isArray(body.reports) && !body.company)) {
-      return NextResponse.json(
-        { error: "Expected { reports: [...] } or { company, brief, overall, risks }" },
-        { status: 400 }
-      );
-    }
+    const pdf = await new Promise<Buffer>((resolve, reject) => {
+      const child = spawn(process.execPath, [scriptPath], { cwd: process.cwd() })
+      let stdout = ""
+      let stderr = ""
+      child.stdin.write(input)
+      child.stdin.end()
+      child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString() })
+      child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString() })
+      child.on("close", (code) => {
+        if (code !== 0) { reject(new Error(Script exited with code : ) ) }
+        else { resolve(Buffer.from(stdout.trim(), "base64")) }
+      })
+      child.on("error", reject)
+    })
 
-    const pdfBuffer = await runScript(body);
-
-    return new NextResponse(pdfBuffer, {
+    const date = new Date().toISOString().slice(0, 10)
+    return new Response(pdf, {
       status: 200,
       headers: {
-        "Content-Type":        "application/pdf",
-        "Content-Disposition": `attachment; filename="morning-brief-${new Date().toISOString().slice(0, 10)}.pdf"`,
-        "Content-Length":      String(pdfBuffer.length),
+        "Content-Type": "application/pdf",
+        "Content-Disposition": ttachment; filename="morning-brief-.pdf",
       },
-    });
+    })
   } catch (err: any) {
-    console.error("PDF concise export error:", err);
-    return NextResponse.json({ error: err.message ?? "Export failed" }, { status: 500 });
+    console.error("pdf-concise route error:", err)
+    return NextResponse.json({ error: err.message ?? "Failed to generate PDF" }, { status: 500 })
   }
 }
