@@ -2,9 +2,5 @@
 import { MotionGeneratorForm } from "@/components/MotionGeneratorForm"
 
 export default function Page() {
-  return (
-    <main className="min-h-screen bg-background px-4 py-12 max-w-6xl mx-auto">
-      <MotionGeneratorForm />
-    </main>
-  )
+  return <MotionGeneratorForm />
 }

@@ -190,20 +190,5 @@
       "UK",
       "finance"
     ]
-  },
-  {
-    "id": "apple",
-    "name": "apple",
-    "ticker": "AAPL",
-    "country": "US",
-    "market": "NASDAQ",
-    "industry": "Technology",
-    "tags": [
-      "hardware",
-      "software",
-      "consumer electronics",
-      "smartphones"
-    ],
-    "addedAt": "2026-03-11T12:22:30.822Z"
   }
 ]
