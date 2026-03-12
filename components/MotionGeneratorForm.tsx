@@ -55,8 +55,6 @@ const BORDER = "#DDD8CF"
 
 export function MotionGeneratorForm() {
 
-  // ── All logic unchanged ───────────────────────────────────────────────────
-
   const [allCompanies, setAllCompanies] = useState<Company[]>([])
   const [companiesLoading, setCompaniesLoading] = useState(true)
 
@@ -195,6 +193,7 @@ export function MotionGeneratorForm() {
   const [scrapedArticles, setScrapedArticles] = useState<any[]>([])
   const [scrapeElapsed, setScrapeElapsed] = useState(0)
   const [isExportingAll, setIsExportingAll] = useState(false)
+  const [isExportingConcise, setIsExportingConcise] = useState(false)
   const scrapeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scrapeStartRef = useRef<number>(0)
 
@@ -308,14 +307,41 @@ export function MotionGeneratorForm() {
     }
   }
 
+  // ── NEW: Morning Brief PDF (concise branded format) ───────────────────────
+  async function downloadConcisePdf() {
+    const doneReports = visibleReports.filter((r) => r.done && r.brief)
+    if (doneReports.length === 0) return
+    setIsExportingConcise(true)
+    try {
+      const res = await fetch("/api/export/pdf-concise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reports: doneReports.map((r) => ({
+            company: r.company,
+            brief: r.brief,
+          }))
+        }),
+      })
+      if (!res.ok) { alert("Morning brief PDF export failed. Please try again."); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `morning-brief-${new Date().toISOString().slice(0, 10)}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setIsExportingConcise(false)
+    }
+  }
+
   const anyLoading = isRunningAll || isScraping || isGeneratingDaily || reports.some((r) => r.isLoading)
   const isShowingProgress = (isRunningAll || isGeneratingDaily) && progressTotal > 0
   const progressPercent = progressTotal > 0 ? Math.round((progressCount / progressTotal) * 100) : 0
   const visibleReports = reports.filter((r) => selectedCompanies.some((c) => c.name === r.company))
   const doneCount = visibleReports.filter((r) => r.done).length
   const errorCount = visibleReports.filter((r) => r.error && !r.isLoading).length
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: CREAM }}>
@@ -383,7 +409,6 @@ export function MotionGeneratorForm() {
         {/* ── Active Entities card ─────────────────────────────────────────── */}
         <div className="briefing-card" style={{ background: "white", borderRadius: 16, border: `1px solid ${BORDER}`, overflow: "hidden", marginBottom: 20 }}>
 
-          {/* Card top */}
           <div style={{ padding: "20px 24px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.13em", textTransform: "uppercase", color: SAGE, marginBottom: 3 }}>Active Entities</p>
@@ -399,7 +424,6 @@ export function MotionGeneratorForm() {
             </div>
           </div>
 
-          {/* Search */}
           <div style={{ padding: "0 24px 14px" }}>
             <input
               type="search"
@@ -410,7 +434,6 @@ export function MotionGeneratorForm() {
             />
           </div>
 
-          {/* Chips */}
           {companiesLoading ? (
             <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", gap: 8, color: "#8A8580", fontSize: 13 }}>
               <Loader2 style={{ width: 15, height: 15, animation: "spin 1s linear infinite" }} /> Loading entities…
@@ -458,7 +481,6 @@ export function MotionGeneratorForm() {
             </div>
           )}
 
-          {/* Progress */}
           {isShowingProgress && (
             <div style={{ padding: "0 24px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8A8580", marginBottom: 6 }}>
@@ -471,7 +493,6 @@ export function MotionGeneratorForm() {
             </div>
           )}
 
-          {/* Status */}
           {!isShowingProgress && (doneCount > 0 || errorCount > 0) && (
             <div style={{ padding: "0 24px 16px", display: "flex", gap: 16, fontSize: 12 }}>
               {doneCount > 0 && <span style={{ display: "flex", alignItems: "center", gap: 5, color: SAGE, fontWeight: 500 }}><CheckCircle2 style={{ width: 13, height: 13 }} />{doneCount} briefing{doneCount > 1 ? "s" : ""} ready</span>}
@@ -498,10 +519,17 @@ export function MotionGeneratorForm() {
 
             <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
               {doneCount > 0 && (
-                <button onClick={downloadAllPdf} disabled={anyLoading || isExportingAll} className="muted-btn" style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
-                  {isExportingAll ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <Download style={{ width: 12, height: 12 }} />}
-                  {isExportingAll ? "Exporting…" : `Export all (${doneCount})`}
-                </button>
+                <>
+                  <button onClick={downloadAllPdf} disabled={anyLoading || isExportingAll} className="muted-btn" style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
+                    {isExportingAll ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <Download style={{ width: 12, height: 12 }} />}
+                    {isExportingAll ? "Exporting…" : `Export all (${doneCount})`}
+                  </button>
+                  {/* ── NEW: Morning Brief button ── */}
+                  <button onClick={downloadConcisePdf} disabled={anyLoading || isExportingConcise} className="muted-btn" style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, fontSize: 11, fontWeight: 500, cursor: "pointer", borderColor: SAGE, color: SAGE }}>
+                    {isExportingConcise ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <FileText style={{ width: 12, height: 12 }} />}
+                    {isExportingConcise ? "Building…" : "Morning Brief"}
+                  </button>
+                </>
               )}
               <button onClick={runAll} disabled={anyLoading || selectedIds.size === 0} className="muted-btn" style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                 <Sparkles style={{ width: 12, height: 12 }} />Legacy
@@ -512,7 +540,6 @@ export function MotionGeneratorForm() {
             </div>
           </div>
 
-          {/* Scrape error */}
           {scrapeError && (
             <div style={{ margin: "0 24px 16px", borderRadius: 12, padding: "12px 16px", background: "#FEF2F2", border: "1px solid #FECACA", display: "flex", gap: 10 }}>
               <AlertCircle style={{ width: 15, height: 15, color: "#EF4444", flexShrink: 0, marginTop: 2 }} />
@@ -559,7 +586,6 @@ export function MotionGeneratorForm() {
           </div>
         )}
 
-        {/* ── Recent Briefings header ───────────────────────────────────── */}
         {visibleReports.length > 0 && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, marginTop: 8 }}>
             <h2 className="f-serif" style={{ fontSize: 26, fontWeight: 500, color: "#1C1810" }}>Recent Briefings</h2>
@@ -580,7 +606,6 @@ export function MotionGeneratorForm() {
               marginBottom: 16,
             }}
           >
-            {/* Card header */}
             <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ marginTop: 2 }}>
@@ -606,7 +631,6 @@ export function MotionGeneratorForm() {
               )}
             </div>
 
-            {/* Card body */}
             <div style={{ padding: "16px 24px 20px" }}>
               {r.error && !r.isLoading ? (
                 <div style={{ borderRadius: 10, padding: "12px 14px", background: "#FEF2F2", border: "1px solid #FECACA", display: "flex", gap: 10 }}>
@@ -623,14 +647,12 @@ export function MotionGeneratorForm() {
                   {r.context && (
                     <p style={{ fontSize: 13, color: "#5A554E", lineHeight: 1.65 }}>{r.context}</p>
                   )}
-
                   {r.isLoading && !r.motions.length && (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 0", fontSize: 13, color: "#8A8580" }}>
                       <Loader2 style={{ width: 14, height: 14, color: SAGE, animation: "spin 1s linear infinite" }} />
                       Generating briefing…
                     </div>
                   )}
-
                   {r.motions.map((item, idx) => (
                     <div
                       key={idx}
@@ -690,7 +712,6 @@ export function MotionGeneratorForm() {
                   onDragOver={(e) => onDragOver(e, index)}
                   onDragEnd={onDragEnd}
                   style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 24px", borderBottom: `1px solid ${BORDER}`, cursor: "grab", opacity: dragIndex === index ? 0.4 : 1, transition: "background 0.1s" }}
-                  className="group"
                   onMouseEnter={(e) => (e.currentTarget.style.background = "#FAFAF8")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
@@ -745,7 +766,6 @@ export function MotionGeneratorForm() {
               </button>
             </div>
 
-            {/* Name + autofill */}
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8580", display: "block", marginBottom: 6 }}>Name *</label>
               <div style={{ display: "flex", gap: 8 }}>
@@ -767,7 +787,6 @@ export function MotionGeneratorForm() {
                 : <p style={{ fontSize: 11, color: "#8A8580", marginTop: 5 }}>Type a name and click Auto-fill to populate fields automatically.</p>}
             </div>
 
-            {/* Grid fields */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               {[
                 { key: "ticker", label: "Ticker", placeholder: "AAPL" },
