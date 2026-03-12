@@ -38,11 +38,55 @@ function initials(name) {
 }
 
 function inferRisk(report) {
+  // Prefer AI-scored overall from riskScore object
+  const rs = report?.riskScore;
+  if (rs?.overall === "Low" || rs?.overall === "Medium" || rs?.overall === "High" || rs?.overall === "Critical") {
+    return rs.overall;
+  }
+  // Legacy fallback
+  const stored = report?.riskLevel;
+  if (stored === "Low" || stored === "Medium" || stored === "High" || stored === "Critical") {
+    return stored;
+  }
   const text = JSON.stringify(report || "").toLowerCase();
-  if (text.includes("critical") || text.includes("attack") || text.includes("crisis") || text.includes("catastrophic")) return "Critical";
-  if (text.includes("high risk") || text.includes("warning") || text.includes("threat") || text.includes("surge") || text.includes("volatile")) return "High";
-  if (text.includes("monitor") || text.includes("watch") || text.includes("pressure") || text.includes("concern")) return "Medium";
-  return "Low";
+  const score =
+    (text.includes("attack") || text.includes("crisis") || text.includes("catastrophic") || text.includes("fraud") || text.includes("scandal")) ? 4
+    : (text.includes("high risk") || text.includes("threat") || text.includes("surge") || text.includes("volatile") || text.includes("lawsuit")) ? 3
+    : (text.includes("pressure") || text.includes("concern") || text.includes("regulatory")) ? 2
+    : 1;
+  return ["Low", "Low", "Medium", "High", "Critical"][score];
+}
+
+// Draw the 4-dimension risk breakdown bar
+function drawRiskBreakdown(doc, riskScore, x, y) {
+  if (!riskScore) return y;
+  const dims = [
+    { label: "Reputational", value: riskScore.reputational ?? "Low" },
+    { label: "Regulatory",   value: riskScore.regulatory   ?? "Low" },
+    { label: "Operational",  value: riskScore.operational  ?? "Low" },
+    { label: "Financial",    value: riskScore.financial    ?? "Low" },
+  ];
+  const colW = (CONTENT_W - 12) / 4;
+
+  dims.forEach((dim, i) => {
+    const cx = x + i * (colW + 4);
+    const colors = RISK_COLORS[dim.value] || RISK_COLORS.Low;
+
+    // Background pill
+    const [br, bg, bb] = hexToRgb(colors.bg);
+    doc.roundedRect(cx, y, colW, 28, 5).fill([br, bg, bb]);
+
+    // Dimension label
+    const [tr, tg, tb] = hexToRgb(colors.text);
+    doc.fontSize(7).font("Helvetica-Bold").fillColor([tr, tg, tb])
+       .text(dim.label.toUpperCase(), cx, y + 5, { width: colW, align: "center", characterSpacing: 0.4, lineBreak: false });
+
+    // Risk value
+    doc.fontSize(9).font("Helvetica-Bold").fillColor([tr, tg, tb])
+       .text(dim.value, cx, y + 15, { width: colW, align: "center", lineBreak: false });
+  });
+
+  return y + 36;
 }
 
 function readStdin() {
@@ -88,14 +132,14 @@ function drawHeader(doc, companyName, dateStr) {
      .opacity(1);
 }
 
-function drawFooter(doc, pageNum) {
+function drawFooter(doc, pageNum, totalPages) {
   const y = PAGE_H - 36;
   setFill(doc, BORDER);
   doc.rect(MARGIN, y, CONTENT_W, 0.5).fill();
 
   doc.fontSize(7.5).font("Helvetica").fillColor(TEXT_LIGHT).opacity(0.8)
      .text("Linq Advisors · Confidential · Daily Intelligence Briefing", MARGIN, y + 8, { lineBreak: false })
-     .text(`Page ${pageNum}`, 0, y + 8, { align: "right", width: PAGE_W - MARGIN, lineBreak: false })
+     .text(`Page ${pageNum} of ${totalPages}`, 0, y + 8, { align: "right", width: PAGE_W - MARGIN, lineBreak: false })
      .opacity(1);
 }
 
@@ -163,13 +207,28 @@ function drawKeyStories(doc, stories, y, maxStories = 3) {
     doc.fontSize(7).font("Helvetica-Bold").fillColor(SAGE)
        .text(String(i + 1), MARGIN + 4, y + 3, { lineBreak: false });
 
-    doc.fontSize(10).font("Helvetica-Bold").fillColor(TEXT_DARK)
-       .text(title, MARGIN + 18, y, { width: CONTENT_W - 18 });
+    // Title as clickable link if URL available
+    if (s.url) {
+      doc.fontSize(10).font("Helvetica-Bold").fillColor(SAGE)
+         .text(title, MARGIN + 18, y, { width: CONTENT_W - 18, link: s.url, underline: false });
+    } else {
+      doc.fontSize(10).font("Helvetica-Bold").fillColor(TEXT_DARK)
+         .text(title, MARGIN + 18, y, { width: CONTENT_W - 18 });
+    }
     y = doc.y;
 
     if (reason) {
       doc.fontSize(9).font("Helvetica").fillColor(TEXT_LIGHT)
          .text(reason, MARGIN + 18, y, { width: CONTENT_W - 18 });
+      y = doc.y;
+    }
+
+    // Source URL in small text
+    if (s.url) {
+      const domain = (() => { try { return new URL(s.url).hostname.replace("www.", ""); } catch { return s.url; } })();
+      doc.fontSize(7.5).font("Helvetica").fillColor(SAGE).opacity(0.7)
+         .text(domain, MARGIN + 18, y, { width: CONTENT_W - 18, link: s.url, lineBreak: false })
+         .opacity(1);
       y = doc.y;
     }
     y += 8;
@@ -179,7 +238,7 @@ function drawKeyStories(doc, stories, y, maxStories = 3) {
 
 // ── Cover page ────────────────────────────────────────────────────────────────
 
-function drawCoverPage(doc, companies, dateStr) {
+function drawCoverPage(doc, companies, dateStr, pageNum, totalPages) {
   drawPageBackground(doc);
 
   // Full-height sage sidebar
@@ -215,9 +274,15 @@ function drawCoverPage(doc, companies, dateStr) {
   doc.rect(rx, 92, PAGE_W - rx - MARGIN, 0.5).fill();
 
   let ey = 106;
+  // Company pages start at page 2 (cover = page 1)
   companies.forEach((name, i) => {
     if (ey > PAGE_H - 80) return;
     const ini = initials(name);
+    const companyPageNum = i + 2; // cover=1, so first company=2
+    const destName = `company-${i}`;
+
+    // Clickable row background (invisible, just for hit area)
+    doc.rect(rx, ey, PAGE_W - rx - MARGIN, 22).fill("white");
 
     // Avatar circle
     const [ar, ag, ab] = hexToRgb(SAGE);
@@ -225,12 +290,13 @@ function drawCoverPage(doc, companies, dateStr) {
     doc.fontSize(7).font("Helvetica-Bold").fillColor(SAGE)
        .text(ini, rx + 6, ey + 6, { lineBreak: false });
 
+    // Company name — clickable, links to that page by page index
     doc.fontSize(10.5).font("Helvetica").fillColor(TEXT_DARK)
        .text(name, rx + 26, ey + 5, { lineBreak: false });
 
-    // subtle number
+    // Page number — also clickable
     doc.fontSize(8).font("Helvetica").fillColor(TEXT_LIGHT)
-       .text(String(i + 1).padStart(2, "0"), PAGE_W - MARGIN - 10, ey + 6, { lineBreak: false });
+       .text(String(companyPageNum).padStart(2, "0"), PAGE_W - MARGIN - 14, ey + 6, { lineBreak: false });
 
     ey += 26;
 
@@ -240,19 +306,36 @@ function drawCoverPage(doc, companies, dateStr) {
     }
   });
 
+  // Divider + Appendix entry
+  if (ey <= PAGE_H - 80) {
+    setFill(doc, BORDER);
+    doc.rect(rx + 26, ey - 4, PAGE_W - rx - MARGIN - 26, 0.4).fill();
+
+    const [ar, ag, ab] = hexToRgb(SAGE);
+    doc.circle(rx + 12, ey + 10, 10).fill([ar, ag, ab, 0.15]);
+    doc.fontSize(7).font("Helvetica-Bold").fillColor(SAGE)
+       .text("A", rx + 9, ey + 6, { lineBreak: false });
+
+    doc.fontSize(10.5).font("Helvetica").fillColor(TEXT_MID)
+       .text("Appendix — Risk Grading Methodology", rx + 26, ey + 5, { lineBreak: false });
+
+    // Appendix is always the last page = totalPages
+    doc.fontSize(8).font("Helvetica").fillColor(TEXT_LIGHT)
+       .text(String(totalPages).padStart(2, "0"), PAGE_W - MARGIN - 14, ey + 6, { lineBreak: false });
+  }
+
   // Confidential footer
   doc.fontSize(7.5).font("Helvetica").fillColor(TEXT_LIGHT).opacity(0.6)
      .text("CONFIDENTIAL — For authorised recipients only. Not for distribution.", MARGIN + 180, PAGE_H - 30, { align: "center", width: PAGE_W - (MARGIN + 180) - MARGIN })
      .opacity(1);
+
 }
 
 // ── Company page ──────────────────────────────────────────────────────────────
 
-function drawCompanyPage(doc, companyName, report, pageNum, dateStr) {
+function drawCompanyPage(doc, companyName, report, pageNum, dateStr, totalPages) {
   drawPageBackground(doc);
   drawHeader(doc, companyName, dateStr);
-  drawFooter(doc, pageNum);
-
   const risk = inferRisk(report);
   let y = 92;
 
@@ -260,35 +343,52 @@ function drawCompanyPage(doc, companyName, report, pageNum, dateStr) {
   drawRiskBadge(doc, risk, MARGIN, y);
   doc.fontSize(8).font("Helvetica").fillColor(TEXT_LIGHT)
      .text("INTELLIGENCE SUMMARY", MARGIN + 100, y + 6, { characterSpacing: 1, lineBreak: false });
-  y += 32;
+  y += 30;
+
+  // 4-dimension breakdown (only if riskScore present)
+  if (report?.riskScore) {
+    y = drawRiskBreakdown(doc, report.riskScore, MARGIN, y);
+    y += 4;
+  } else {
+    y += 6;
+  }
 
   // ── KEY DEVELOPMENT ────────────────────────────────────────────────────────
   y = drawSectionLabel(doc, "Key Development", y);
 
-  // Pull top 1-2 bullet from what_changed as the lead
   const changed = report?.what_changed ?? [];
-  const lead = changed.slice(0, 1).map(s => String(s).replace(/\[[\d,]+\]/g, "").trim()).join(" ");
+  const noMentionsRe = /no (new |recent |meaningful )?(mention|coverage|article|update|news)|(no .{0,40}(last|past) \d+ hour)|(as of .{0,20}\d{4})/i;
+  const hasNoMentions = changed.some(s => noMentionsRe.test(String(s)));
+  const meaningful = changed.filter(s => !noMentionsRe.test(String(s)));
+  const lead = meaningful.slice(0, 1).map(s => String(s).replace(/\[\d,]+\]/g, "").trim()).join(" ");
+
+  // Amber notice banner when no fresh coverage
+  if (hasNoMentions) {
+    const [nr, ng, nb] = hexToRgb("#FEF9EC");
+    doc.roundedRect(MARGIN, y, CONTENT_W, 22, 5).fill([nr, ng, nb]);
+    doc.fontSize(8.5).font("Helvetica").fillColor("#92400E")
+       .text("No new mentions in the last 24 hours — showing most recent known activity.", MARGIN + 10, y + 7, { width: CONTENT_W - 20, lineBreak: false });
+    y += 30;
+  }
 
   if (lead) {
-    // Accent left bar
     setFill(doc, SAGE);
-    doc.rect(MARGIN, y, 3, 0).fill(); // will grow with text height
+    doc.rect(MARGIN, y, 3, 0).fill();
     doc.fontSize(11).font("Helvetica-Bold").fillColor(TEXT_DARK)
        .text(lead, MARGIN + 12, y, { width: CONTENT_W - 12 });
-    // Draw bar to actual height
     const barH = doc.y - y + 4;
     doc.rect(MARGIN, y, 3, barH).fill();
     y = doc.y + 8;
   } else {
-    doc.fontSize(10).font("Helvetica").fillColor(TEXT_LIGHT).text("No key developments reported.", MARGIN, y);
+    doc.fontSize(10).font("Helvetica").fillColor(TEXT_LIGHT).text("No recent activity to report.", MARGIN, y);
     y = doc.y + 8;
   }
 
   y = drawDivider(doc, y);
 
   // ── WHAT CHANGED ──────────────────────────────────────────────────────────
-  y = drawSectionLabel(doc, "What Changed", y);
-  y = drawBullets(doc, changed.slice(1), y, 3);
+  y = drawSectionLabel(doc, "Recent Activity", y);
+  y = drawBullets(doc, meaningful.slice(1), y, 3);
   y += 4;
 
   y = drawDivider(doc, y);
@@ -338,12 +438,124 @@ function drawCompanyPage(doc, companyName, report, pageNum, dateStr) {
   drawKeyStories(doc, report?.key_stories ?? [], y, 3);
 }
 
+
+// ── Appendix page ─────────────────────────────────────────────────────────────
+
+function drawAppendixPage(doc, pageNum, totalPages) {
+  drawPageBackground(doc);
+
+  // Header
+  setFill(doc, SAGE);
+  doc.rect(0, 0, PAGE_W, 72).fill();
+  doc.opacity(0.55).fontSize(8).font("Helvetica").fillColor(WHITE)
+     .text("LINQ ADVISORS", MARGIN, 20, { characterSpacing: 2 }).opacity(1);
+  doc.fontSize(18).font("Helvetica-Bold").fillColor(WHITE)
+     .text("Appendix — Risk Grading Methodology", MARGIN, 32);
+
+  let y = 92;
+
+  // Intro
+  doc.fontSize(10).font("Helvetica").fillColor(TEXT_MID)
+     .text("This briefing uses a structured four-dimension risk model to assess each entity's reputational exposure. Each dimension is scored independently by AI analysis of the latest intelligence, then combined into an overall risk signal.", MARGIN, y, { width: CONTENT_W });
+  y = doc.y + 20;
+
+  // ── Risk levels ────────────────────────────────────────────────────────────
+  y = drawSectionLabel(doc, "Risk Levels", y);
+  y += 2;
+
+  const levels = [
+    { level: "Low",      color: RISK_COLORS.Low,      desc: "No meaningful threat identified. Coverage is routine or positive. No immediate action required." },
+    { level: "Medium",   color: RISK_COLORS.Medium,   desc: "Minor concerns identified. Situation warrants monitoring but does not require escalation at this time." },
+    { level: "High",     color: RISK_COLORS.High,     desc: "Active threat with clear evidence of reputational, regulatory, operational or financial exposure. Attention and response planning recommended." },
+    { level: "Critical", color: RISK_COLORS.Critical, desc: "Crisis-level event. Immediate threat to brand integrity, operations, or legal standing. Escalation and active response required." },
+  ];
+
+  levels.forEach(({ level, color, desc }) => {
+    const [br, bg, bb] = hexToRgb(color.bg);
+    const [tr, tg, tb] = hexToRgb(color.text);
+    const [dr, dg, db] = hexToRgb(color.dot);
+
+    // Badge
+    doc.roundedRect(MARGIN, y, 80, 22, 5).fill([br, bg, bb]);
+    doc.circle(MARGIN + 10, y + 11, 3).fill([dr, dg, db]);
+    doc.fontSize(8).font("Helvetica-Bold").fillColor([tr, tg, tb])
+       .text(level.toUpperCase(), MARGIN + 18, y + 7, { lineBreak: false, characterSpacing: 0.5 });
+
+    // Description
+    doc.fontSize(10).font("Helvetica").fillColor(TEXT_MID)
+       .text(desc, MARGIN + 92, y + 4, { width: CONTENT_W - 92 });
+    y = Math.max(doc.y, y + 28) + 8;
+  });
+
+  y = drawDivider(doc, y + 4);
+
+  // ── Dimensions ─────────────────────────────────────────────────────────────
+  y = drawSectionLabel(doc, "Risk Dimensions", y);
+  y += 2;
+
+  const dimensions = [
+    {
+      name: "Reputational Risk",
+      icon: "R",
+      desc: "Assesses exposure from negative press coverage, brand damage, public perception threats, social media sentiment, and crisis communications risk. A high score indicates active negative narratives that could materially damage the entity's public standing.",
+    },
+    {
+      name: "Regulatory & Legal Risk",
+      icon: "L",
+      desc: "Evaluates signals of regulatory investigations, fines, sanctions, compliance failures, litigation, and legal exposure. Includes monitoring of government actions, industry body scrutiny, and enforcement trends relevant to the entity.",
+    },
+    {
+      name: "Operational Risk",
+      icon: "O",
+      desc: "Covers threats to business continuity including supply chain disruptions, leadership instability, cybersecurity incidents, operational outages, and strategic execution failures. Elevated scores indicate vulnerabilities in core operating capacity.",
+    },
+    {
+      name: "Financial Risk",
+      icon: "F",
+      desc: "Reflects market and financial exposure including stock price volatility, earnings pressure, analyst downgrades, credit risk signals, and investor sentiment shifts. Scores draw on market commentary and financial news in the brief period.",
+    },
+  ];
+
+  dimensions.forEach(({ name, icon, desc }) => {
+    // Icon circle
+    const [ir, ig, ib] = hexToRgb(SAGE);
+    doc.circle(MARGIN + 12, y + 12, 12).fill([ir, ig, ib, 0.1]);
+    doc.fontSize(9).font("Helvetica-Bold").fillColor(SAGE)
+       .text(icon, MARGIN + 8, y + 7, { lineBreak: false });
+
+    // Name + description
+    doc.fontSize(11).font("Helvetica-Bold").fillColor(TEXT_DARK)
+       .text(name, MARGIN + 30, y, { width: CONTENT_W - 30 });
+    y = doc.y + 2;
+    doc.fontSize(10).font("Helvetica").fillColor(TEXT_MID)
+       .text(desc, MARGIN + 30, y, { width: CONTENT_W - 30 });
+    y = doc.y + 14;
+
+    if (name !== "Financial Risk") {
+      setFill(doc, BORDER);
+      doc.rect(MARGIN + 30, y - 6, CONTENT_W - 30, 0.5).fill();
+      y += 4;
+    }
+  });
+
+  y = drawDivider(doc, y + 8);
+
+  // ── Scoring note ───────────────────────────────────────────────────────────
+  y = drawSectionLabel(doc, "Scoring Methodology", y);
+  y += 4;
+  doc.fontSize(9.5).font("Helvetica").fillColor(TEXT_MID)
+     .text("Risk scores are generated automatically by Claude (Anthropic), a large language model, based on structured analysis of the news mentions collected for each entity within the reporting window. The model is prompted to assess each dimension independently based on the evidence present in the brief — not general knowledge about the entity.", MARGIN, y, { width: CONTENT_W });
+  y = doc.y + 8;
+  doc.fontSize(9.5).font("Helvetica").fillColor(TEXT_MID)
+     .text("Scores reflect the content of the brief period only and should be interpreted in the context of each entity's baseline profile. Linq Advisors recommends analyst review before acting on any Critical or High signal.", MARGIN, y, { width: CONTENT_W });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 (async () => {
   try {
     const inputRaw = await readStdin();
-    const { company, report, companyNames } = JSON.parse(inputRaw || "{}");
+    const { company, report, companyNames, pageNum, totalPages } = JSON.parse(inputRaw || "{}");
 
     const dateStr = new Date().toLocaleDateString("en-GB", {
       day: "numeric", month: "long", year: "numeric",
@@ -364,9 +576,11 @@ function drawCompanyPage(doc, companyName, report, pageNum, dateStr) {
     const done = new Promise(resolve => doc.on("end", () => resolve(Buffer.concat(chunks))));
 
     if (company === "__COVER__") {
-      drawCoverPage(doc, companyNames || [], dateStr);
+      drawCoverPage(doc, companyNames || [], dateStr, pageNum ?? 1, totalPages ?? 1);
+    } else if (company === "__APPENDIX__") {
+      drawAppendixPage(doc, pageNum ?? totalPages ?? 1, totalPages ?? 1);
     } else {
-      drawCompanyPage(doc, company || "", report || {}, 1, dateStr);
+      drawCompanyPage(doc, company || "", report || {}, pageNum ?? 1, dateStr, totalPages ?? 1);
     }
 
     doc.end();

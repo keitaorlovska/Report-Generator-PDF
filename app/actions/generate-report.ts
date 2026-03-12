@@ -2,6 +2,7 @@
 
 import OpenAI from "openai";
 import { getArticles } from "@/lib/memory-store";
+import { scoreRisk } from "@/lib/score-risk";  // ← ADD THIS
 
 function compactMentions(articles: any[], limit = 18) {
   return articles.slice(0, limit).map((a: any) => ({
@@ -34,10 +35,6 @@ export async function generateReportAction(company: string, hours: number = 24) 
 
   const all = getArticles();
 
-  // Match articles by company name.
-  // Articles are stored under the original name (e.g. "AG Insurance"),
-  // but this function may be called with a query override (e.g. "AG Insurance Belgium").
-  // So we match if the stored name is contained within the requested query.
   const normalise = (s: string) => s.toLowerCase().trim();
   const filteredByCompany = all.filter((a: any) => {
     if (!a.company) return true;
@@ -46,7 +43,6 @@ export async function generateReportAction(company: string, hours: number = 24) 
     return stored === requested || requested.startsWith(stored) || requested.includes(stored);
   });
 
-  // Use a 30-day window — Perplexity sometimes returns dates older than 7 days
   const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const filtered = filteredByCompany.filter((a: any) => {
     if (!a.publishedAt) return true;
@@ -54,7 +50,6 @@ export async function generateReportAction(company: string, hours: number = 24) 
     return isNaN(t) ? true : t >= cutoff;
   });
 
-  // Always fall back to all company articles if date filter removes everything
   const finalArticles = filtered.length > 0 ? filtered : filteredByCompany;
   const mentions = compactMentions(finalArticles, 18);
 
@@ -71,6 +66,13 @@ export async function generateReportAction(company: string, hours: number = 24) 
           why_it_matters: [],
           key_stories: [],
           watchpoints: ["No articles found for this company."],
+          riskScore: {                        // ← score even empty reports
+            overall: "Low",
+            reputational: "Low",
+            regulatory: "Low",
+            operational: "Low",
+            market: "Low",
+          },
         },
       },
     };
@@ -101,7 +103,9 @@ Rules:
 - Base your output ONLY on the provided mentions.
 - Keep each bullet 1 sentence, concrete, non-hype.
 - "key_stories" should include 5-8 items, deduplicated, with the original URLs.
-- If mentions are thin, be transparent in watchpoints.`,
+- If mentions are thin, be transparent in watchpoints.
+- NEVER put "no new mentions" or "no coverage" or "no articles found" in what_changed or why_it_matters. If coverage is thin, still summarise what IS known. Reserve absence-of-coverage notes strictly for watchpoints.
+- what_changed bullets must describe actual developments, not the absence of them.`,
       },
       {
         role: "user",
@@ -134,6 +138,12 @@ Now produce the JSON brief.`,
   } else {
     report.key_stories = [];
   }
+
+  // ── Score reputation risk across 4 dimensions ──────────────────────────────
+  // Runs in parallel with nothing — fast Claude Haiku call (~200ms).
+  // Stores { overall, reputational, regulatory, operational, market } on the report.
+  report.riskScore = await scoreRisk(company, report);  // ← ADD THIS
+  // ──────────────────────────────────────────────────────────────────────────
 
   return { ok: true, saved: { company, hours, report } };
 }

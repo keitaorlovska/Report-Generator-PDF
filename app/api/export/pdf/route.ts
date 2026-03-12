@@ -1,107 +1,135 @@
-﻿// app/api/export/pdf/route.ts
+﻿// app/api/export/pdf/combined/route.ts
 export const runtime = "nodejs";
-// Force Vercel to include pdfkit in the serverless bundle
-import "pdfkit";
 import { NextResponse } from "next/server";
 import path from "path";
-import fs from "fs";
 import { spawn } from "child_process";
-import type { Company } from "@/data/companies";
+import { PDFDocument } from "pdf-lib";
 
-// ---------- Types ----------
-interface PdfRequestBody {
-  selectedCompanyIds: string[];
-  report?: any;
+interface ReportEntry {
+  companyId: string;
+  companyName: string;
+  report: any;
 }
 
-function loadCompanies(): Company[] {
-  try {
-    const raw = fs.readFileSync(
-      path.join(process.cwd(), "data", "companies.json"),
-      "utf-8"
-    );
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+interface CombinedPdfRequest {
+  reports: ReportEntry[];
 }
 
-function resolveCompanyIds(ids: string[]): Company[] {
-  const all = loadCompanies();
-  const map = new Map(all.map((c) => [c.id, c]));
-  return ids.map((id) => map.get(id)).filter((c): c is Company => c !== undefined);
-}
-
-// ---------- Route handler ----------
-export async function POST(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON in request body." }, { status: 400 });
-  }
-
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    !Array.isArray((body as PdfRequestBody).selectedCompanyIds) ||
-    !(body as PdfRequestBody).selectedCompanyIds.every((v) => typeof v === "string")
-  ) {
-    return NextResponse.json({ error: "`selectedCompanyIds` must be an array of strings." }, { status: 400 });
-  }
-
-  const { selectedCompanyIds, report } = body as PdfRequestBody;
-  console.log("PDF route report:", JSON.stringify(report));
-
-  const companies = resolveCompanyIds(selectedCompanyIds);
-  if (companies.length === 0) {
-    return NextResponse.json({ error: "No valid company IDs provided." }, { status: 400 });
-  }
-
-  try {
-    const pdfBuffers = await Promise.all(
-      companies.map((c) => generatePdfForCompany(c, report))
-    );
-
-    if (pdfBuffers.length === 1) {
-      return new NextResponse(new Uint8Array(pdfBuffers[0]), {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${companies[0].name}-daily-brief.pdf"`,
-        },
-      });
-    }
-
-    const results = companies.map((c, i) => ({
-      company: c.name,
-      pdf: pdfBuffers[i].toString("base64"),
-    }));
-    return NextResponse.json({ reports: results });
-  } catch (err) {
-    console.error("PDF export error:", err);
-    return NextResponse.json({ error: "PDF export failed" }, { status: 500 });
-  }
-}
-
-// ---------- PDF generation ----------
-async function generatePdfForCompany(company: Company, reportData?: any): Promise<Buffer> {
+// Generates one company page via the make-pdf.cjs script
+async function generatePdfForCompany(companyName: string, reportData: any, pageNum: number, totalPages: number): Promise<Buffer> {
   const scriptPath = path.join(process.cwd(), "scripts", "make-pdf.cjs");
-  const payload = { company: company.name, report: reportData ?? {} };
+  const payload = { company: companyName, report: reportData ?? {}, pageNum, totalPages };
 
   return new Promise<Buffer>((resolve, reject) => {
     const child = spawn(process.execPath, [scriptPath], {
       cwd: process.cwd(),
       stdio: ["pipe", "pipe", "pipe"],
     });
+
+    const timeout = setTimeout(() => {
+      child.kill();
+      reject(new Error(`Timeout generating PDF for ${companyName}`));
+    }, 30_000);
+
     let out = "";
     let err = "";
     child.stdout.on("data", (d: Buffer) => (out += d.toString()));
     child.stderr.on("data", (d: Buffer) => (err += d.toString()));
     child.on("close", (code: number | null) => {
+      clearTimeout(timeout);
       if (code !== 0) return reject(new Error(err || `Script exited ${code}`));
-      resolve(Buffer.from(out.trim(), "base64"));
+      const trimmed = out.trim();
+      if (!trimmed) return reject(new Error(`Empty output for ${companyName}`));
+      resolve(Buffer.from(trimmed, "base64"));
     });
+    child.on("error", (e) => { clearTimeout(timeout); reject(e); });
     child.stdin.write(JSON.stringify(payload));
     child.stdin.end();
   });
+}
+
+// Generates a cover page via the make-pdf.cjs script (company = "__COVER__")
+async function generateCoverPage(companyNames: string[], totalPages: number): Promise<Buffer> {
+  const scriptPath = path.join(process.cwd(), "scripts", "make-pdf.cjs");
+  const payload = { company: "__COVER__", report: {}, companyNames, pageNum: 1, totalPages };
+
+  return new Promise<Buffer>((resolve, reject) => {
+    const child = spawn(process.execPath, [scriptPath], {
+      cwd: process.cwd(),
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    const timeout = setTimeout(() => { child.kill(); reject(new Error("Timeout on cover page")); }, 30_000);
+    let out = "";
+    let err = "";
+    child.stdout.on("data", (d: Buffer) => (out += d.toString()));
+    child.stderr.on("data", (d: Buffer) => (err += d.toString()));
+    child.on("close", (code: number | null) => {
+      clearTimeout(timeout);
+      if (code !== 0) return reject(new Error(err || `Cover script exited ${code}`));
+      const trimmed = out.trim();
+      if (!trimmed) return reject(new Error("Empty cover output"));
+      resolve(Buffer.from(trimmed, "base64"));
+    });
+    child.on("error", (e) => { clearTimeout(timeout); reject(e); });
+    child.stdin.write(JSON.stringify(payload));
+    child.stdin.end();
+  });
+}
+
+async function mergePdfs(pdfBuffers: Buffer[]): Promise<Buffer> {
+  const merged = await PDFDocument.create();
+  for (const buf of pdfBuffers) {
+    const doc = await PDFDocument.load(buf);
+    const pageIndices = Array.from({ length: doc.getPageCount() }, (_, i) => i);
+    const pages = await merged.copyPages(doc, pageIndices);
+    pages.forEach((page) => merged.addPage(page));
+  }
+  const mergedBytes = await merged.save();
+  return Buffer.from(mergedBytes);
+}
+
+export async function POST(req: Request) {
+  let body: unknown;
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+
+  const { reports } = body as CombinedPdfRequest;
+  if (!Array.isArray(reports) || reports.length === 0) {
+    return NextResponse.json({ error: "No reports provided." }, { status: 400 });
+  }
+
+  try {
+    const pdfBuffers: Buffer[] = [];
+
+    // 1. Cover page first
+    const totalPages = reports.length + 1;
+    console.log("Generating cover page...");
+    const cover = await generateCoverPage(reports.map((r) => r.companyName), totalPages);
+    pdfBuffers.push(cover);
+
+    // 2. One page per company, sequentially
+    // Cover is page 1, so company pages start at 2
+    for (let i = 0; i < reports.length; i++) {
+      const r = reports[i];
+      console.log(`Generating PDF for: ${r.companyName} | page ${i + 2} of ${totalPages}`);
+      const buf = await generatePdfForCompany(r.companyName, r.report, i + 2, totalPages);
+      pdfBuffers.push(buf);
+    }
+
+    // 3. Merge all into one PDF
+    console.log(`Merging ${pdfBuffers.length} pages...`);
+    const combined = await mergePdfs(pdfBuffers);
+    console.log(`Done. Combined PDF: ${combined.length} bytes`);
+
+    return new NextResponse(new Uint8Array(combined), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="linq-intelligence-briefing.pdf"`,
+      },
+    });
+  } catch (err) {
+    console.error("Combined PDF export error:", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
