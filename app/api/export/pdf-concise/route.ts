@@ -1,4 +1,5 @@
-﻿import { NextResponse } from "next/server"
+﻿export const runtime = "nodejs"
+import { NextResponse } from "next/server"
 import { spawn } from "child_process"
 import path from "path"
 
@@ -36,3 +37,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message ?? "Failed to generate PDF" }, { status: 500 })
   }
 }
+
