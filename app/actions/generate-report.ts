@@ -147,3 +147,4 @@ Now produce the JSON brief.`,
 
   return { ok: true, saved: { company, hours, report } };
 }
+

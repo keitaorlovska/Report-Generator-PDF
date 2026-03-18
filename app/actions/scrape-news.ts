@@ -138,3 +138,4 @@ Rules:
     articles: allArticles.slice(0, 10),
   };
 }
+
