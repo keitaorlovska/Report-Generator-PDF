@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import OpenAI from "openai";
 import fs from "fs";
@@ -95,7 +95,7 @@ Rules:
 - Focus on the last 24 hours. If fewer than 8 items exist, expand to last 7 days.
 - Every mention MUST have a direct public link.
 - Deduplicate similar stories.
-- Aim for 10–15 mentions when possible.`,
+- Aim for 10â€“15 mentions when possible.`,
         },
         {
           role: "user",
@@ -130,7 +130,7 @@ Rules:
     }
   }
 
-  setArticles(allArticles);
+  await setArticles(allArticles);
 
   return {
     ok: true,

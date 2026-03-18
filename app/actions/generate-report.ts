@@ -1,8 +1,8 @@
-"use server";
+﻿"use server";
 
 import OpenAI from "openai";
 import { getArticles } from "@/lib/memory-store";
-import { scoreRisk } from "@/lib/score-risk";  // ← ADD THIS
+import { scoreRisk } from "@/lib/score-risk";  // â† ADD THIS
 
 function compactMentions(articles: any[], limit = 18) {
   return articles.slice(0, limit).map((a: any) => ({
@@ -33,7 +33,7 @@ export async function generateReportAction(company: string, hours: number = 24) 
     baseURL: "https://api.perplexity.ai",
   });
 
-  const all = getArticles();
+  const all = await getArticles();
 
   const normalise = (s: string) => s.toLowerCase().trim();
   const filteredByCompany = all.filter((a: any) => {
@@ -66,7 +66,7 @@ export async function generateReportAction(company: string, hours: number = 24) 
           why_it_matters: [],
           key_stories: [],
           watchpoints: ["No articles found for this company."],
-          riskScore: {                        // ← score even empty reports
+          riskScore: {                        // â† score even empty reports
             overall: "Low",
             reputational: "Low",
             regulatory: "Low",
@@ -139,11 +139,11 @@ Now produce the JSON brief.`,
     report.key_stories = [];
   }
 
-  // ── Score reputation risk across 4 dimensions ──────────────────────────────
-  // Runs in parallel with nothing — fast Claude Haiku call (~200ms).
+  // â”€â”€ Score reputation risk across 4 dimensions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Runs in parallel with nothing â€” fast Claude Haiku call (~200ms).
   // Stores { overall, reputational, regulatory, operational, market } on the report.
-  report.riskScore = await scoreRisk(company, report);  // ← ADD THIS
-  // ──────────────────────────────────────────────────────────────────────────
+  report.riskScore = await scoreRisk(company, report);  // â† ADD THIS
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return { ok: true, saved: { company, hours, report } };
 }
