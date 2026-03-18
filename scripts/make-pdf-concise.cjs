@@ -1,370 +1,199 @@
-// scripts/make-pdf-concise.cjs
-// Drop-in alongside make-pdf.cjs — same stdin/stdout contract, same PDFKit dep.
-// Input:  { reports: [{ company, brief, overall, risks }] }  (JSON via stdin)
-// Output: base64-encoded PDF on stdout
-
-"use strict";
-
+const fs = require("fs");
 const path = require("path");
-const fs   = require("fs");
 const PDFDocument = require("pdfkit");
 
-// ── Brand tokens ──────────────────────────────────────────────────────────────
-const C = {
-  dark:    "#1A1A2E",   // deep navy  — header bg
-  mid:     "#2E2E4E",   // mid navy   — intro strip bg
-  accent:  "#C8A96E",   // gold       — labels, dividers
-  white:   "#FFFFFF",
-  offwhite:"#F5F5F0",
-  text:    "#222222",
-  muted:   "#666666",
-  border:  "#DDDDDD",
-  high:    "#C0392B",
-  medium:  "#D4820A",
-  low:     "#27AE60",
-  none:    "#AAAAAA",
-};
-
-function riskColor(level = "") {
-  switch (level.toUpperCase()) {
-    case "HIGH":     return C.high;
-    case "MEDIUM":   return C.medium;
-    case "LOW":      return C.low;
-    case "CRITICAL": return "#7B0000";
-    default:         return C.none;
-  }
-}
-
-// ── Stdin helper ──────────────────────────────────────────────────────────────
 function readStdin() {
   return new Promise((resolve, reject) => {
     let data = "";
     process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (c) => (data += c));
-    process.stdin.on("end",  () => resolve(data));
+    process.stdin.on("data", (chunk) => (data += chunk));
+    process.stdin.on("end", () => resolve(data));
     process.stdin.on("error", reject);
   });
 }
 
-// ── Geometry helpers ──────────────────────────────────────────────────────────
-const PAGE_W = 595.28;  // A4 points
-const PAGE_H = 841.89;
-const M      = 40;      // margin
-const COL_W  = PAGE_W - M * 2;
+function deriveRisk(brief) {
+  const text = [
+    ...(brief?.what_changed ?? []),
+    ...(brief?.why_it_matters ?? []),
+    ...(brief?.watchpoints ?? []),
+    ...(brief?.key_stories ?? []).map(s => (s.title || "") + " " + (s.reason || "")),
+  ].join(" ").toLowerCase();
 
-// Draw a filled rectangle
-function rect(doc, x, y, w, h, color) {
-  doc.save().rect(x, y, w, h).fill(color).restore();
+  const criticalWords = ["criminal", "fraud", "scandal", "collapse", "indicted", "arrested", "bankrupt", "sanction"];
+  const highWords = ["lawsuit", "investigation", "breach", "fine", "violation", "recall", "strike", "hack", "data leak", "regulatory action"];
+  const medWords = ["warning", "decline", "concern", "uncertainty", "risk", "challenge", "pressure", "scrutiny", "probe"];
+
+  if (criticalWords.some(w => text.includes(w))) return "CRITICAL";
+  if (highWords.some(w => text.includes(w))) return "HIGH";
+  if (medWords.some(w => text.includes(w))) return "MEDIUM";
+  return "LOW";
 }
 
-// Draw a horizontal rule
-function hRule(doc, y, color = C.border, thickness = 0.5) {
-  doc.save()
-    .moveTo(M, y).lineTo(PAGE_W - M, y)
-    .lineWidth(thickness).strokeColor(color).stroke()
-    .restore();
-}
+const RISK_COLORS = { CRITICAL: "#7B0000", HIGH: "#C0392B", MEDIUM: "#D4820A", LOW: "#27AE60" };
+const NAVY = "#1A1A2E";
+const GOLD = "#C8A96E";
+const MID_NAVY = "#2E2E4E";
+const CREAM = "#F5F4F0";
+const LIGHT_GREY = "#E8E6E0";
 
-// Render a small coloured pill (background rect + white label)
-function pill(doc, x, y, label, bgColor, pillW = 52, pillH = 13) {
-  doc.save()
-    .rect(x, y, pillW, pillH)
-    .fill(bgColor)
-    .restore();
-  doc.save()
-    .fontSize(6.5).fillColor(C.white)
-    .font("Helvetica-Bold")
-    .text(label, x, y + 2.5, { width: pillW, align: "center" })
-    .restore();
-  return pillW + 4; // spacing after pill
-}
-
-// Footer on every page
-function drawFooter(doc, pageNum) {
-  const y = PAGE_H - 28;
-  hRule(doc, y - 4);
-  doc.save()
-    .fontSize(6.5).fillColor(C.muted).font("Helvetica")
-    .text(
-      `CONFIDENTIAL — For authorised recipients only. Not for distribution.   Linq Advisors · Daily Intelligence Briefing (Morning Edition) · Page ${pageNum}`,
-      M, y, { width: COL_W, align: "center" }
-    )
-    .restore();
-}
-
-// ── Header (first page only) ──────────────────────────────────────────────────
-function drawHeader(doc, date, counts) {
-  const h = 88;
-  rect(doc, 0, 0, PAGE_W, h, C.dark);
-
-  // Gold accent bar
-  rect(doc, 0, h - 2, PAGE_W, 2, C.accent);
-
-  // Title
-  doc.save()
-    .font("Helvetica-Bold").fontSize(20).fillColor(C.white)
-    .text("Daily Intelligence Briefing", M, 18, { width: 300 })
-    .restore();
-
-  doc.save()
-    .font("Helvetica").fontSize(8).fillColor(C.accent)
-    .text("MORNING EDITION  ·  CONCISE READ", M, 42)
-    .restore();
-
-  doc.save()
-    .font("Helvetica").fontSize(7.5).fillColor("#CCCCCC")
-    .text(`${date}  ·  Reputation Management & Corporate Intelligence`, M, 56)
-    .restore();
-
-  // Risk snapshot (right side)
-  const snapX = PAGE_W - M - 160;
-  doc.save()
-    .font("Helvetica-Bold").fontSize(7).fillColor(C.accent)
-    .text("RISK SNAPSHOT", snapX, 20, { width: 160, align: "right" })
-    .restore();
-
-  const snapY = 33;
-  const snapLabels = [
-    { label: `${counts.HIGH} HIGH`,   color: C.high   },
-    { label: `${counts.MEDIUM} MED`,  color: C.medium },
-    { label: `${counts.LOW} LOW`,     color: C.low    },
-  ];
-  let sx = snapX;
-  snapLabels.forEach(({ label, color }) => {
-    pill(doc, sx, snapY, label, color, 46, 14);
-    sx += 50;
-  });
-
-  return h + 2; // return y after header
-}
-
-// ── Intro strip ───────────────────────────────────────────────────────────────
-function drawIntro(doc, y, text) {
-  const padV = 10, padH = M;
-  // measure height
-  const fakeH = 40; // estimated; PDFKit doesn't pre-measure easily
-  rect(doc, 0, y, PAGE_W, fakeH, C.mid);
-  doc.save()
-    .font("Helvetica").fontSize(8).fillColor("#DDDDDD")
-    .text(text, padH, y + padV, { width: COL_W, align: "left" })
-    .restore();
-  return y + fakeH + 8;
-}
-
-// ── Entity card ───────────────────────────────────────────────────────────────
-// Returns y after the card
-function drawEntityCard(doc, y, entity) {
-  const { name, overall = "LOW", risks = {}, brief = {} } = entity;
-
-  // Light background stripe on alternating cards handled externally if needed
-  const startY = y;
-
-  // ── Entity name + overall risk badge ─────────────────────────────────────
-  doc.save()
-    .font("Helvetica-Bold").fontSize(10).fillColor(C.dark)
-    .text(name, M, y, { width: COL_W - 70, lineBreak: false })
-    .restore();
-
-  // Overall badge (right-aligned)
-  const badgeW = 56, badgeH = 14;
-  pill(doc, PAGE_W - M - badgeW, y - 1, overall.toUpperCase(), riskColor(overall), badgeW, badgeH);
-
-  y += 17;
-
-  // ── Four dimension pills (REP / REG / OPS / FIN) ──────────────────────────
-  const dims = [
-    { label: "REP", value: risks.REP ?? risks.rep ?? "—" },
-    { label: "REG", value: risks.REG ?? risks.reg ?? "—" },
-    { label: "OPS", value: risks.OPS ?? risks.ops ?? "—" },
-    { label: "FIN", value: risks.FIN ?? risks.fin ?? "—" },
-  ];
-
-  let px = M;
-  dims.forEach(({ label, value }) => {
-    const pW = 62;
-    doc.save()
-      .rect(px, y, pW, 13)
-      .fill(riskColor(value))
-      .restore();
-    doc.save()
-      .font("Helvetica-Bold").fontSize(6).fillColor(C.white)
-      .text(`${label}  ${(value || "—").toUpperCase()}`, px + 1, y + 2.5, { width: pW - 2, align: "center" })
-      .restore();
-    px += pW + 3;
-  });
-
-  y += 18;
-
-  // ── Key Development ───────────────────────────────────────────────────────
-  const keyDev = brief?.key_dev
-    ?? (brief?.what_changed ?? [])[0]
-    ?? "No key development reported.";
-
-  doc.save()
-    .font("Helvetica-Bold").fontSize(6.5).fillColor(C.accent)
-    .text("KEY DEVELOPMENT", M, y)
-    .restore();
-  y += 9;
-
-  doc.save()
-    .font("Helvetica-Bold").fontSize(8).fillColor(C.dark)
-    .text(keyDev, M, y, { width: COL_W })
-    .restore();
-  y += doc.heightOfString(keyDev, { width: COL_W, font: "Helvetica-Bold", fontSize: 8 }) + 5;
-
-  // ── Analyst Commentary (condensed to first 2 bullets) ─────────────────────
-  const commentaryItems = [
-    ...(brief?.why_it_matters ?? []).slice(0, 1),
-    ...(brief?.what_changed   ?? []).slice(1, 2),
-  ].filter(Boolean);
-
-  if (commentaryItems.length > 0) {
-    doc.save()
-      .font("Helvetica-Bold").fontSize(6.5).fillColor(C.accent)
-      .text("ANALYST COMMENTARY", M, y)
-      .restore();
-    y += 9;
-
-    commentaryItems.forEach((item) => {
-      doc.save()
-        .font("Helvetica").fontSize(7.5).fillColor(C.text)
-        .text(`${item}`, M, y, { width: COL_W })
-        .restore();
-      y += doc.heightOfString(item, { width: COL_W, font: "Helvetica", fontSize: 7.5 }) + 3;
-    });
-  }
-
-  // ── Top watchpoint ────────────────────────────────────────────────────────
-  const watchpoint = (brief?.watchpoints ?? [])[0] ?? "";
-  if (watchpoint) {
-    doc.save()
-      .font("Helvetica-Oblique").fontSize(7.5).fillColor(C.muted)
-      .text(`▶  ${watchpoint}`, M, y, { width: COL_W })
-      .restore();
-    y += doc.heightOfString(`▶  ${watchpoint}`, { width: COL_W, font: "Helvetica-Oblique", fontSize: 7.5 }) + 4;
-  }
-
-  // ── Divider ───────────────────────────────────────────────────────────────
-  y += 4;
-  hRule(doc, y);
-  y += 8;
-
-  return y;
-}
-
-// ── Page management ───────────────────────────────────────────────────────────
-function needsNewPage(doc, y, needed = 80) {
-  return y + needed > PAGE_H - 40;
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
 (async () => {
   try {
-    const raw = await readStdin();
-    const input = JSON.parse(raw || "{}");
+    const inputRaw = await readStdin();
+    const input = JSON.parse(inputRaw || "{}");
+    const reports = input.reports
+      ? input.reports
+      : [{ company: input.company, brief: input.report ?? input.brief }];
 
-    // Support two input shapes:
-    //   1. { reports: [...] }           — multi-company morning briefing
-    //   2. { company, report, overall, risks } — single company (from existing downloadPdf flow)
-    let entities = [];
+    const fontPath = path.join(process.cwd(), "public", "fonts", "Inter-VariableFont_opsz,wght.ttf");
+    const hasFont = fs.existsSync(fontPath);
 
-    if (Array.isArray(input.reports)) {
-      entities = input.reports;
-    } else if (input.company) {
-      entities = [{
-        name:    input.company,
-        overall: input.overall ?? "LOW",
-        risks:   input.risks   ?? {},
-        brief:   input.report  ?? {},
-      }];
-    }
+    const doc = new PDFDocument({ margin: 0, size: "A4" });
+    if (hasFont) doc.font(fontPath);
 
-    // Count risk levels for header snapshot
-    const counts = { HIGH: 0, MEDIUM: 0, LOW: 0 };
-    entities.forEach(({ overall = "LOW" }) => {
-      const k = overall.toUpperCase();
-      if (k in counts) counts[k]++;
-    });
-
-    // Font path (same as make-pdf.cjs)
-    const fontPath = path.join(
-      process.cwd(),
-      "public", "fonts", "Inter-VariableFont_opsz,wght.ttf"
-    );
-
-    const doc = new PDFDocument({ size: "A4", margin: 0, autoFirstPage: true });
     const chunks = [];
     doc.on("data", (c) => chunks.push(c));
-    const done = new Promise((resolve) => doc.on("end", () => resolve(Buffer.concat(chunks))));
+    const done = new Promise((res) => doc.on("end", () => res(Buffer.concat(chunks))));
 
-    if (fs.existsSync(fontPath)) doc.font(fontPath);
+    const PW = 595.28;
+    const PH = 841.89;
+    const MARGIN = 40;
+    const CONTENT_W = PW - MARGIN * 2;
+    const FOOTER_Y = PH - 40;
 
-    // ── Page 1 header ──────────────────────────────────────────────────────
-    const date = new Date().toLocaleDateString("en-GB", {
-      day: "numeric", month: "long", year: "numeric",
-    });
+    const riskCounts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    reports.forEach(r => { const k = deriveRisk(r.brief); riskCounts[k]++; });
 
-    let y = drawHeader(doc, date, counts);
-    y += 6;
-
-    // Intro strip
-    const highNames = entities
-      .filter((e) => (e.overall ?? "").toUpperCase() === "HIGH")
-      .map((e) => e.name)
-      .join(", ");
-
-    const introText = highNames
-      ? `Today's briefing covers ${entities.length} entities. HIGH risk: ${highNames}. Scroll for full entity analysis.`
-      : `Today's briefing covers ${entities.length} entities. No HIGH risk signals today.`;
-
-    y = drawIntro(doc, y, introText);
-
-    // ── Entity cards ───────────────────────────────────────────────────────
     let pageNum = 1;
-    drawFooter(doc, pageNum);
 
-    for (const entity of entities) {
-      // Estimate card height conservatively (80–130 pts)
-      if (needsNewPage(doc, y, 100)) {
-        doc.addPage({ size: "A4", margin: 0 });
+    const drawPageHeader = (isFirst) => {
+      if (isFirst) {
+        doc.rect(0, 0, PW, 130).fill(NAVY);
+        doc.rect(0, 130, PW, 4).fill(GOLD);
+        doc.fillColor(GOLD).fontSize(8).text("LINQ ADVISORS  ·  DAILY INTELLIGENCE BRIEFING", MARGIN, 22, { characterSpacing: 1.5 });
+        doc.fillColor("white").fontSize(22).text("Daily Intelligence Briefing", MARGIN, 38);
+        doc.fillColor(GOLD).fontSize(8).text("MORNING EDITION  ·  CONCISE READ", MARGIN, 68, { characterSpacing: 1 });
+        const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+        doc.fillColor("rgba(255,255,255,0.55)").fontSize(9).text(`${dateStr}  ·  Reputation Management & Corporate Intelligence`, MARGIN, 84);
+        doc.fillColor("rgba(255,255,255,0.45)").fontSize(7).text("RISK SNAPSHOT", PW - 160, 22, { width: 120, align: "right", characterSpacing: 1 });
+        let pillX = PW - 170;
+        [
+          { label: `${riskCounts.HIGH + riskCounts.CRITICAL} HIGH`, color: RISK_COLORS.HIGH },
+          { label: `${riskCounts.MEDIUM} MED`, color: RISK_COLORS.MEDIUM },
+          { label: `${riskCounts.LOW} LOW`, color: RISK_COLORS.LOW },
+        ].forEach(({ label, color }) => {
+          doc.roundedRect(pillX, 36, 48, 18, 3).fill(color);
+          doc.fillColor("white").fontSize(8).text(label, pillX, 41, { width: 48, align: "center" });
+          pillX += 54;
+        });
+        doc.rect(0, 134, PW, 36).fill(MID_NAVY);
+        const highCount = riskCounts.HIGH + riskCounts.CRITICAL;
+        const introText = `Today's briefing covers ${reports.length} entit${reports.length === 1 ? "y" : "ies"}. ${
+          highCount > 0 ? `${highCount} HIGH risk signal${highCount > 1 ? "s" : ""} require immediate attention.` : "No HIGH risk signals today."
+        }`;
+        doc.fillColor("rgba(255,255,255,0.8)").fontSize(9).text(introText, MARGIN, 148, { width: CONTENT_W });
+        return 185;
+      } else {
+        doc.rect(0, 0, PW, 28).fill(NAVY);
+        doc.rect(0, 28, PW, 2).fill(GOLD);
+        doc.fillColor(GOLD).fontSize(7).text("LINQ ADVISORS  ·  DAILY INTELLIGENCE BRIEFING  ·  CONFIDENTIAL", MARGIN, 10, { characterSpacing: 1 });
+        return 42;
+      }
+    };
+
+    const drawFooter = (pNum) => {
+      doc.rect(0, PH - 24, PW, 24).fill(NAVY);
+      doc.fillColor("rgba(255,255,255,0.35)").fontSize(7).text("CONFIDENTIAL — FOR AUTHORISED RECIPIENTS ONLY", MARGIN, PH - 15);
+      doc.fillColor("rgba(255,255,255,0.5)").fontSize(7).text(`Page ${pNum}`, PW - MARGIN - 30, PH - 15, { width: 30, align: "right" });
+    };
+
+    let currentY = drawPageHeader(true);
+
+    for (const entry of reports) {
+      const companyName = entry.company || "Unknown Entity";
+      const brief = entry.brief || {};
+      const risk = deriveRisk(brief);
+      const riskColor = RISK_COLORS[risk];
+
+      const whatChanged = brief.what_changed ?? [];
+      const whyMatters = brief.why_it_matters ?? [];
+      const keyStories = brief.key_stories ?? [];
+      const watchpoints = brief.watchpoints ?? [];
+
+      const keyDev = whatChanged[0] || keyStories[0]?.title || "No significant developments reported.";
+      const commentary = whyMatters.slice(0, 2);
+      const watchpoint = watchpoints[0] || null;
+
+      // Measure heights
+      const keyDevH = doc.heightOfString(keyDev, { width: CONTENT_W - 24 });
+      const commentaryH = commentary.reduce((acc, line) => acc + doc.heightOfString(`• ${line}`, { width: CONTENT_W - 24 }) + 2, 0);
+      const watchH = watchpoint ? doc.heightOfString(`¶  ${watchpoint}`, { width: CONTENT_W - 24 }) + 6 : 0;
+      // Card: top-bar(28) + name-row(24) + divider(8) + keydev-label(12) + keydev-text + gap(8) + commentary + watchpoint + bottom-pad(12)
+      const cardH = 28 + 24 + 8 + 12 + keyDevH + 8 + (commentary.length > 0 ? 14 + commentaryH : 0) + watchH + 12;
+
+      if (currentY + cardH + 12 > FOOTER_Y) {
+        drawFooter(pageNum);
+        doc.addPage();
         pageNum++;
-        // Repeat slim header bar on continuation pages
-        rect(doc, 0, 0, PAGE_W, 28, C.dark);
-        doc.save()
-          .font("Helvetica-Bold").fontSize(10).fillColor(C.white)
-          .text("Daily Intelligence Briefing  —  Morning Edition", M, 8)
-          .restore();
-        doc.save()
-          .font("Helvetica").fontSize(7.5).fillColor(C.accent)
-          .text(date, PAGE_W - M - 100, 10, { width: 100, align: "right" })
-          .restore();
-        rect(doc, 0, 28, PAGE_W, 1.5, C.accent);
-        drawFooter(doc, pageNum);
-        y = 38;
+        currentY = drawPageHeader(false);
       }
 
-      y = drawEntityCard(doc, y, entity);
+      // ── Card background ──
+      doc.rect(MARGIN, currentY, CONTENT_W, cardH).fillAndStroke(CREAM, LIGHT_GREY);
+
+      // ── Coloured top bar with entity name ──
+      doc.rect(MARGIN, currentY, CONTENT_W, 28).fill(NAVY);
+
+      // Entity name in top bar
+      doc.fillColor("white").fontSize(11)
+        .text(companyName, MARGIN + 12, currentY + 8, { width: CONTENT_W - 90 });
+
+      // Risk badge in top bar
+      const badgeW = 60;
+      const badgeX = MARGIN + CONTENT_W - badgeW - 8;
+      doc.roundedRect(badgeX, currentY + 6, badgeW, 16, 3).fill(riskColor);
+      doc.fillColor("white").fontSize(8)
+        .text(risk, badgeX, currentY + 11, { width: badgeW, align: "center" });
+
+      let cardY = currentY + 28 + 8; // below top bar + padding
+
+      // ── KEY DEVELOPMENT label ──
+      doc.fillColor(GOLD).fontSize(7)
+        .text("KEY DEVELOPMENT", MARGIN + 12, cardY, { characterSpacing: 1 });
+      cardY += 12;
+
+      // Key development text
+      doc.fillColor(NAVY).fontSize(9)
+        .text(keyDev, MARGIN + 12, cardY, { width: CONTENT_W - 24 });
+      cardY += keyDevH + 8;
+
+      // ── ANALYST COMMENTARY ──
+      if (commentary.length > 0) {
+        doc.fillColor(GOLD).fontSize(7)
+          .text("ANALYST COMMENTARY", MARGIN + 12, cardY, { characterSpacing: 1 });
+        cardY += 12;
+        commentary.forEach((line) => {
+          doc.fillColor("#4A4540").fontSize(8)
+            .text(`• ${line}`, MARGIN + 12, cardY, { width: CONTENT_W - 24 });
+          cardY += doc.heightOfString(`• ${line}`, { width: CONTENT_W - 24 }) + 2;
+        });
+        cardY += 4;
+      }
+
+      // ── WATCHPOINT ──
+      if (watchpoint) {
+        doc.fillColor("#8A8580").fontSize(7.5)
+          .text(`¶  ${watchpoint}`, MARGIN + 12, cardY, { width: CONTENT_W - 24 });
+      }
+
+      currentY += cardH + 10;
     }
 
-    // Disclaimer
-    if (needsNewPage(doc, y, 30)) {
-      doc.addPage({ size: "A4", margin: 0 });
-      pageNum++;
-      drawFooter(doc, pageNum);
-      y = 50;
-    }
-    doc.save()
-      .font("Helvetica-Oblique").fontSize(6.5).fillColor(C.muted)
-      .text(
-        "Risk scores generated by Claude (Anthropic) based on news coverage within the reporting window. Analyst review recommended before acting on any High signal.",
-        M, y, { width: COL_W, align: "center" }
-      )
-      .restore();
-
+    drawFooter(pageNum);
     doc.end();
+
     const pdf = await done;
     process.stdout.write(pdf.toString("base64"));
-
   } catch (err) {
     console.error(err);
     process.exit(1);
