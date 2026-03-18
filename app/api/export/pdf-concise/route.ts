@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     })
 
     const date = new Date().toISOString().slice(0, 10)
-    return new Response(pdf, {
+    return new Response(new Uint8Array(pdf), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
@@ -37,4 +37,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message ?? "Failed to generate PDF" }, { status: 500 })
   }
 }
+
 
