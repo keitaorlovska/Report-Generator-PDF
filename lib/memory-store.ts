@@ -12,23 +12,21 @@ export type StoredArticle = {
   tags?: string[];
 };
 
-const DATA_PATH = path.join(process.cwd(), "data", "articles-cache.json");
+const DATA_PATH = "/tmp/articles-cache.json";
 
 export function setArticles(articles: StoredArticle[]) {
-  // Keep in-memory for fast access in same instance
   globalThis.__ARTICLES__ = articles;
-  // Persist to disk so other instances can read it
   try {
     fs.writeFileSync(DATA_PATH, JSON.stringify(articles, null, 2), "utf-8");
-  } catch {}
+  } catch (e) {
+    console.error("Failed to write articles cache:", e);
+  }
 }
 
 export function getArticles(): StoredArticle[] {
-  // Try in-memory first
   if (globalThis.__ARTICLES__ && globalThis.__ARTICLES__.length > 0) {
     return globalThis.__ARTICLES__;
   }
-  // Fall back to disk
   try {
     const raw = fs.readFileSync(DATA_PATH, "utf-8");
     const articles = JSON.parse(raw);
