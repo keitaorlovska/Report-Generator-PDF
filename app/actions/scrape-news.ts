@@ -1,4 +1,5 @@
-﻿"use server";
+﻿export const maxDuration = 60;
+"use server";
 
 import OpenAI from "openai";
 import fs from "fs";
@@ -138,4 +139,5 @@ Rules:
     articles: allArticles.slice(0, 10),
   };
 }
+
 
