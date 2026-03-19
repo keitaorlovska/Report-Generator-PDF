@@ -1,5 +1,5 @@
-﻿export const maxDuration = 60;
-"use server";
+﻿"use server";
+export const maxDuration = 60;
 
 import OpenAI from "openai";
 import { getArticles } from "@/lib/memory-store";
@@ -148,5 +148,6 @@ Now produce the JSON brief.`,
 
   return { ok: true, saved: { company, hours, report } };
 }
+
 
 
