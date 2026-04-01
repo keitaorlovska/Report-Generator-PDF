@@ -167,6 +167,7 @@ export function MotionGeneratorForm() {
   const [progressCount, setProgressCount] = useState(0)
   const [progressTotal, setProgressTotal] = useState(0)
   const [retryCompany, setRetryCompany] = useState<string | null>(null)
+  const [scrapeProgress, setScrapeProgress] = useState(0)
 
   const selectedCompanies = useMemo(() => allCompanies.filter((c) => selectedIds.has(c.id)), [allCompanies, selectedIds])
   const filteredCompanies = useMemo(() => {
@@ -200,21 +201,33 @@ export function MotionGeneratorForm() {
   const resetAll = () => {
     cancelRef.current = true; setIsRunningAll(false)
     setReports(allCompanies.map((c) => ({ company: c.name, context: "", motions: [], error: "", isLoading: false, brief: null, done: false })))
-    setIsScraping(false); setScrapeCount(null); setIsGeneratingDaily(false); setScrapeError(""); setProgressCount(0); setProgressTotal(0)
+    setIsScraping(false); setScrapeCount(null); setIsGeneratingDaily(false); setScrapeError("")
+    setProgressCount(0); setProgressTotal(0); setScrapeProgress(0)
   }
 
   async function scrapeAll() {
-    setIsScraping(true); setScrapeError(""); setScrapedArticles([]); setScrapeCount(null); setScrapeElapsed(0)
+    setIsScraping(true)
+    setScrapeError("")
+    setScrapedArticles([])
+    setScrapeCount(null)
+    setScrapeElapsed(0)
+    setScrapeProgress(0)
     scrapeStartRef.current = Date.now()
-    scrapeTimerRef.current = setInterval(() => { setScrapeElapsed(Math.floor((Date.now() - scrapeStartRef.current) / 1000)) }, 1000)
+    scrapeTimerRef.current = setInterval(() => {
+      setScrapeElapsed(Math.floor((Date.now() - scrapeStartRef.current) / 1000))
+    }, 1000)
 
     const allArticles: any[] = []
     let totalCount = 0
+    const ids = Array.from(selectedIds)
 
     try {
-      const ids = Array.from(selectedIds)
-      for (const id of ids) {
+      for (let i = 0; i < ids.length; i++) {
         if (cancelRef.current) break
+
+        const id = ids[i]
+        setScrapeProgress(i + 1)
+
         try {
           const res = await fetch("/api/scrape-news", {
             method: "POST",
@@ -229,6 +242,11 @@ export function MotionGeneratorForm() {
         } catch {
           // skip failed individual company, continue with rest
         }
+
+        // 2-second delay between requests to avoid Perplexity rate limiting
+        if (i < ids.length - 1 && !cancelRef.current) {
+          await sleep(2000)
+        }
       }
 
       if (allArticles.length > 0) {
@@ -242,6 +260,7 @@ export function MotionGeneratorForm() {
     } finally {
       if (scrapeTimerRef.current) clearInterval(scrapeTimerRef.current)
       setIsScraping(false)
+      setScrapeProgress(0)
     }
   }
 
@@ -332,9 +351,7 @@ export function MotionGeneratorForm() {
       a.download = `daily-intelligence-briefing-${new Date().toISOString().slice(0, 10)}.pdf`
       a.click()
       URL.revokeObjectURL(url)
-    } finally {
-      setIsExportingAll(false)
-    }
+    } finally { setIsExportingAll(false) }
   }
 
   async function sendBriefing() {
@@ -356,12 +373,7 @@ export function MotionGeneratorForm() {
       const res = await fetch("/api/export/pdf-concise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reports: doneReports.map((r) => ({
-            company: r.company,
-            brief: r.brief,
-          }))
-        }),
+        body: JSON.stringify({ reports: doneReports.map((r) => ({ company: r.company, brief: r.brief })) }),
       })
       if (!res.ok) { alert("Morning brief PDF export failed. Please try again."); return }
       const blob = await res.blob()
@@ -371,9 +383,7 @@ export function MotionGeneratorForm() {
       a.download = `morning-brief-${new Date().toISOString().slice(0, 10)}.pdf`
       a.click()
       URL.revokeObjectURL(url)
-    } finally {
-      setIsExportingConcise(false)
-    }
+    } finally { setIsExportingConcise(false) }
   }
 
   const anyLoading = isRunningAll || isScraping || isGeneratingDaily || reports.some((r) => r.isLoading)
@@ -382,6 +392,9 @@ export function MotionGeneratorForm() {
   const visibleReports = reports.filter((r) => selectedCompanies.some((c) => c.name === r.company))
   const doneCount = visibleReports.filter((r) => r.done).length
   const errorCount = visibleReports.filter((r) => r.error && !r.isLoading).length
+  const totalIds = selectedIds.size
+  const scrapePercent = totalIds > 0 ? Math.round((scrapeProgress / totalIds) * 100) : 0
+  const estimatedSecsLeft = Math.max(0, (totalIds - scrapeProgress) * 11)
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: CREAM }}>
@@ -521,6 +534,20 @@ export function MotionGeneratorForm() {
             </div>
           )}
 
+          {/* Scrape progress bar */}
+          {isScraping && totalIds > 0 && (
+            <div style={{ padding: "0 24px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8A8580", marginBottom: 6 }}>
+                <span>Fetching articles — {scrapeProgress} of {totalIds} entities</span>
+                <span>{scrapePercent}%</span>
+              </div>
+              <div style={{ height: 4, borderRadius: 4, background: "#EAE6DF", overflow: "hidden" }}>
+                <div style={{ height: 4, borderRadius: 4, background: SAGE, width: `${scrapePercent}%`, transition: "width 0.5s ease" }} />
+              </div>
+            </div>
+          )}
+
+          {/* Generate progress bar */}
           {isShowingProgress && (
             <div style={{ padding: "0 24px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8A8580", marginBottom: 6 }}>
@@ -533,7 +560,7 @@ export function MotionGeneratorForm() {
             </div>
           )}
 
-          {!isShowingProgress && (doneCount > 0 || errorCount > 0) && (
+          {!isShowingProgress && !isScraping && (doneCount > 0 || errorCount > 0) && (
             <div style={{ padding: "0 24px 16px", display: "flex", gap: 16, fontSize: 12 }}>
               {doneCount > 0 && <span style={{ display: "flex", alignItems: "center", gap: 5, color: SAGE, fontWeight: 500 }}><CheckCircle2 style={{ width: 13, height: 13 }} />{doneCount} briefing{doneCount > 1 ? "s" : ""} ready</span>}
               {errorCount > 0 && <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#EF4444", fontWeight: 500 }}><XCircle style={{ width: 13, height: 13 }} />{errorCount} failed</span>}
@@ -549,7 +576,7 @@ export function MotionGeneratorForm() {
             {isScraping && (
               <span style={{ fontSize: 11, color: "#8A8580", display: "flex", alignItems: "center", gap: 5 }}>
                 <Loader2 style={{ width: 11, height: 11, animation: "spin 1s linear infinite" }} />
-                ~{Math.max(0, Math.round(selectedIds.size * 9) - scrapeElapsed)}s left
+                ~{estimatedSecsLeft}s left
               </span>
             )}
 
@@ -612,7 +639,7 @@ export function MotionGeneratorForm() {
               <div style={{ borderTop: `1px solid ${BORDER}` }}>
                 {scrapedArticles.map((a, i) => (
                   <div key={i} style={{ padding: "14px 24px", borderBottom: i < scrapedArticles.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-                    <a href={a.url} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "flex-start", gap: 6, textDecoration: "none" }} className="group">
+                    <a href={a.url} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "flex-start", gap: 6, textDecoration: "none" }}>
                       <span style={{ fontSize: 13, fontWeight: 500, color: "#1C1810", lineHeight: 1.4, flex: 1 }}>{a.title}</span>
                       <ExternalLink style={{ width: 12, height: 12, color: SAGE, flexShrink: 0, marginTop: 3, opacity: 0.7 }} />
                     </a>
@@ -664,11 +691,7 @@ export function MotionGeneratorForm() {
                 </div>
               </div>
               {r.brief && (
-                <button
-                  onClick={() => downloadPdf(r.company, r.brief)}
-                  className="muted-btn"
-                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 500, cursor: "pointer" }}
-                >
+                <button onClick={() => downloadPdf(r.company, r.brief)} className="muted-btn" style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                   <Download style={{ width: 12, height: 12 }} />PDF
                 </button>
               )}
@@ -687,9 +710,7 @@ export function MotionGeneratorForm() {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {r.context && (
-                    <p style={{ fontSize: 13, color: "#5A554E", lineHeight: 1.65 }}>{r.context}</p>
-                  )}
+                  {r.context && <p style={{ fontSize: 13, color: "#5A554E", lineHeight: 1.65 }}>{r.context}</p>}
                   {r.isLoading && !r.motions.length && (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 0", fontSize: 13, color: "#8A8580" }}>
                       <Loader2 style={{ width: 14, height: 14, color: SAGE, animation: "spin 1s linear infinite" }} />
@@ -697,11 +718,7 @@ export function MotionGeneratorForm() {
                     </div>
                   )}
                   {r.motions.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="motion-inner"
-                      style={{ borderRadius: 12, padding: "14px 16px", background: CREAM, border: `1px solid ${BORDER}` }}
-                    >
+                    <div key={idx} className="motion-inner" style={{ borderRadius: 12, padding: "14px 16px", background: CREAM, border: `1px solid ${BORDER}` }}>
                       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
                         <h4 className="f-serif" style={{ fontSize: 15, fontWeight: 500, color: "#1C1810", lineHeight: 1.4 }}>{item.text}</h4>
                         {item.category && (
@@ -712,7 +729,8 @@ export function MotionGeneratorForm() {
                       </div>
                       <p style={{ fontSize: 12, color: "#7A7570", lineHeight: 1.6 }}>{item.reasoning}</p>
                       {item.link && (
-                        <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: SAGE, textDecoration: "none", marginTop: 8 }}
+                        <a href={item.link} target="_blank" rel="noopener noreferrer"
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: SAGE, textDecoration: "none", marginTop: 8 }}
                           onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
                           onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}>
                           Read full article <ExternalLink style={{ width: 11, height: 11 }} />
