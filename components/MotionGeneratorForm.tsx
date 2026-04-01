@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 console.log("✅ MotionGeneratorForm loaded from /components")
 
@@ -11,7 +11,6 @@ import {
   XCircle, Plus, Pencil, Trash2, GripVertical, X, Save, Wand2,
   Bell, UserCircle, Download, Settings2
 } from "lucide-react"
-import { scrapeNewsAction } from "@/app/actions/scrape-news"
 import { generateReportAction } from "@/app/actions/generate-report"
 import type { Company } from "@/data/companies"
 
@@ -208,12 +207,42 @@ export function MotionGeneratorForm() {
     setIsScraping(true); setScrapeError(""); setScrapedArticles([]); setScrapeCount(null); setScrapeElapsed(0)
     scrapeStartRef.current = Date.now()
     scrapeTimerRef.current = setInterval(() => { setScrapeElapsed(Math.floor((Date.now() - scrapeStartRef.current) / 1000)) }, 1000)
+
+    const allArticles: any[] = []
+    let totalCount = 0
+
     try {
-      const res = await scrapeNewsAction(Array.from(selectedIds))
-      if (res?.ok) { setScrapeCount(res.count ?? 0); setScrapedArticles(res.articles ?? []) }
-      else { setScrapeError("Scrape failed — no response returned. Please try again.") }
-    } catch (e: any) { setScrapeError(e?.message ?? "An unexpected error occurred while fetching articles.") }
-    finally { if (scrapeTimerRef.current) clearInterval(scrapeTimerRef.current); setIsScraping(false) }
+      const ids = Array.from(selectedIds)
+      for (const id of ids) {
+        if (cancelRef.current) break
+        try {
+          const res = await fetch("/api/scrape-news", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ selectedCompanyIds: [id] }),
+          }).then((r) => r.json())
+
+          if (res?.ok) {
+            totalCount += res.count ?? 0
+            allArticles.push(...(res.articles ?? []))
+          }
+        } catch {
+          // skip failed individual company, continue with rest
+        }
+      }
+
+      if (allArticles.length > 0) {
+        setScrapeCount(totalCount)
+        setScrapedArticles(allArticles.slice(0, 10))
+      } else if (!cancelRef.current) {
+        setScrapeError("No articles found. Please try again.")
+      }
+    } catch (e: any) {
+      setScrapeError(e?.message ?? "An unexpected error occurred while fetching articles.")
+    } finally {
+      if (scrapeTimerRef.current) clearInterval(scrapeTimerRef.current)
+      setIsScraping(false)
+    }
   }
 
   async function generateAllFromScrape() {
@@ -308,7 +337,6 @@ export function MotionGeneratorForm() {
     }
   }
 
-  // ── NEW: Morning Brief PDF (concise branded format) ───────────────────────
   async function sendBriefing() {
     const doneReports = visibleReports.filter((r) => r.done && r.brief)
     if (doneReports.length === 0) return
@@ -536,7 +564,6 @@ export function MotionGeneratorForm() {
                     {isExportingAll ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <Download style={{ width: 12, height: 12 }} />}
                     {isExportingAll ? "Exporting…" : `Export all (${doneCount})`}
                   </button>
-                  {/* ── NEW: Morning Brief button ── */}
                   <button onClick={downloadConcisePdf} disabled={anyLoading || isExportingConcise} className="muted-btn" style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", borderRadius: 10, fontSize: 11, fontWeight: 500, cursor: "pointer", borderColor: SAGE, color: SAGE }}>
                     {isExportingConcise ? <Loader2 style={{ width: 12, height: 12, animation: "spin 1s linear infinite" }} /> : <FileText style={{ width: 12, height: 12 }} />}
                     {isExportingConcise ? "Building…" : "Morning Brief"}
