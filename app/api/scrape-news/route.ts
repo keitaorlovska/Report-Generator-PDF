@@ -2,7 +2,7 @@ export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs";
 import path from "path";
 import { setArticles, type StoredArticle } from "@/lib/memory-store";
@@ -13,57 +13,28 @@ const QUERY_OVERRIDES: Record<string, string> = {
   "Huseierne": "Huseierne Norge",
 };
 
-type PerplexityResult = {
-  company?: string;
-  mentions?: Array<{
-    headline?: string;
-    source?: string;
-    published_at?: string;
-    link?: string;
-    summary?: string;
-    tone?: "positive" | "neutral" | "negative";
-    tags?: string[];
-  }>;
-};
-
-function extractJson(content: string) {
-  const match = content.match(/\{[\s\S]*\}/);
-  return match ? match[0] : content;
-}
-
 function loadCompanies(): Company[] {
   try {
-    const raw = fs.readFileSync(
-      path.join(process.cwd(), "data", "companies.json"),
-      "utf-8"
-    );
+    const raw = fs.readFileSync(path.join(process.cwd(), "data", "companies.json"), "utf-8");
     return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.PERPLEXITY_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ ok: false, error: "Missing PERPLEXITY_API_KEY" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Missing ANTHROPIC_API_KEY" }, { status: 500 });
   }
 
   const { selectedCompanyIds } = await req.json();
-
-  const perplexity = new OpenAI({
-    apiKey,
-    baseURL: "https://api.perplexity.ai",
-  });
+  const client = new Anthropic({ apiKey });
 
   const allCompanies = loadCompanies();
   const companyMap = new Map(allCompanies.map((c) => [c.id, c]));
 
   const companiesToScrape: Company[] =
     selectedCompanyIds && selectedCompanyIds.length > 0
-      ? selectedCompanyIds
-          .map((id: string) => companyMap.get(id))
-          .filter((c: Company | undefined): c is Company => c !== undefined)
+      ? selectedCompanyIds.map((id: string) => companyMap.get(id)).filter((c: any): c is Company => !!c)
       : allCompanies;
 
   const allArticles: StoredArticle[] = [];
@@ -71,66 +42,61 @@ export async function POST(req: NextRequest) {
   for (const company of companiesToScrape) {
     const query = QUERY_OVERRIDES[company.name] ?? company.name;
 
-    const response = await perplexity.chat.completions.create({
-      model: "sonar",
-      temperature: 0.2,
-      max_tokens: 3500,
-      messages: [
-        {
-          role: "system",
-          content: `You are a media intelligence analyst.
-Return STRICT JSON only:
-{
-  "company": "string",
-  "mentions": [
-    {
-      "headline": "string",
-      "source": "string",
-      "published_at": "string",
-      "link": "string",
-      "summary": "string",
-      "tone": "positive|neutral|negative",
-      "tags": ["string"]
-    }
-  ]
-}
+    try {
+      const response = await client.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }] as any,
+        messages: [{
+          role: "user",
+          content: `Search for recent news about "${query}" from the last 24-48 hours.
+
+Then return a JSON array ONLY — no explanation, no markdown, just raw JSON:
+[
+  {
+    "title": "Article headline",
+    "url": "https://...",
+    "source": "Publication name",
+    "publishedAt": "2026-04-01T08:00:00Z",
+    "snippet": "Brief summary of the article",
+    "tone": "positive" | "neutral" | "negative"
+  }
+]
 
 Rules:
-- Focus on the last 24 hours. If fewer than 8 items exist, expand to last 7 days.
-- Every mention MUST have a direct public link.
-- Deduplicate similar stories.
-- Aim for 10–15 mentions when possible.`,
-        },
-        {
-          role: "user",
-          content: `Collect recent news mentions about: ${query}. Return only valid JSON.`,
-        },
-      ],
-    });
-
-    const content = response.choices[0]?.message?.content ?? "";
-    if (!content) continue;
-
-    let parsed: PerplexityResult | null = null;
-    try {
-      parsed = JSON.parse(extractJson(content));
-    } catch {
-      parsed = null;
-    }
-
-    const mentions = parsed?.mentions ?? [];
-    for (const m of mentions) {
-      if (!m?.link) continue;
-      allArticles.push({
-        company: company.name,
-        title: m.headline ?? "(No headline)",
-        url: m.link,
-        source: m.source ?? "Unknown",
-        publishedAt: m.published_at ?? new Date().toISOString(),
-        snippet: m.summary ?? "",
-        tone: m.tone ?? "neutral",
-        tags: m.tags ?? [],
+- Include 5-10 articles maximum
+- Every article MUST have a real URL
+- Only include articles from the last 48 hours
+- Return ONLY the JSON array, nothing else`
+        }]
       });
+
+      // Find the text block in the response
+      const textBlock = response.content.find((b: any) => b.type === "text");
+      if (!textBlock || textBlock.type !== "text") continue;
+
+      let articles: any[] = [];
+      try {
+        const match = textBlock.text.match(/\[[\s\S]*\]/);
+        articles = match ? JSON.parse(match[0]) : [];
+      } catch { continue; }
+
+      for (const a of articles) {
+        if (!a?.url) continue;
+        allArticles.push({
+          company: company.name,
+          title: a.title ?? "(No headline)",
+          url: a.url,
+          source: a.source ?? "Unknown",
+          publishedAt: a.publishedAt ?? new Date().toISOString(),
+          snippet: a.snippet ?? "",
+          tone: a.tone ?? "neutral",
+          tags: [],
+        });
+      }
+    } catch (e: any) {
+      console.error(`Failed to scrape ${company.name}:`, e?.message);
+      continue;
     }
   }
 
