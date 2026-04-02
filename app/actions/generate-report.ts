@@ -1,8 +1,8 @@
 ﻿"use server";
 
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { getArticles } from "@/lib/memory-store";
-import { scoreRisk } from "@/lib/score-risk";
+import { scoreRisk } from "@/lib/score-risk";  // â† ADD THIS
 
 function compactMentions(articles: any[], limit = 18) {
   return articles.slice(0, limit).map((a: any) => ({
@@ -23,12 +23,15 @@ function safeJsonParse(text: string) {
 }
 
 export async function generateReportAction(company: string, hours: number = 24) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.PERPLEXITY_API_KEY;
   if (!apiKey) {
-    return { ok: false, error: "Missing ANTHROPIC_API_KEY" as const };
+    return { ok: false, error: "Missing PERPLEXITY_API_KEY" as const };
   }
 
-  const client = new Anthropic({ apiKey });
+  const perplexity = new OpenAI({
+    apiKey,
+    baseURL: "https://api.perplexity.ai",
+  });
 
   const all = await getArticles();
 
@@ -63,7 +66,7 @@ export async function generateReportAction(company: string, hours: number = 24) 
           why_it_matters: [],
           key_stories: [],
           watchpoints: ["No articles found for this company."],
-          riskScore: {
+          riskScore: {                        // â† score even empty reports
             overall: "Low",
             reputational: "Low",
             regulatory: "Low",
@@ -75,13 +78,16 @@ export async function generateReportAction(company: string, hours: number = 24) 
     };
   }
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+  const response = await perplexity.chat.completions.create({
+    model: "sonar",
+    temperature: 0.2,
     max_tokens: 1800,
     messages: [
       {
-        role: "user",
-        content: `You are a media intelligence analyst. You will be given a list of news mentions (already collected). Do NOT browse the web. Write an executive-friendly daily brief.
+        role: "system",
+        content: `You are a media intelligence analyst.
+You will be given a list of news mentions (already collected). Do NOT browse the web.
+Write an executive-friendly daily brief.
 
 Return STRICT JSON only in this format:
 {
@@ -99,9 +105,11 @@ Rules:
 - "key_stories" should include 5-8 items, deduplicated, with the original URLs.
 - If mentions are thin, be transparent in watchpoints.
 - NEVER put "no new mentions" or "no coverage" or "no articles found" in what_changed or why_it_matters. If coverage is thin, still summarise what IS known. Reserve absence-of-coverage notes strictly for watchpoints.
-- what_changed bullets must describe actual developments, not the absence of them.
-
-Company: ${company}
+- what_changed bullets must describe actual developments, not the absence of them.`,
+      },
+      {
+        role: "user",
+        content: `Company: ${company}
 Time window: last ${hours} hours
 Mentions (JSON):
 ${JSON.stringify(mentions, null, 2)}
@@ -111,16 +119,16 @@ Now produce the JSON brief.`,
     ],
   });
 
-  const content = response.content.find((b) => b.type === "text");
-  if (!content || content.type !== "text") {
-    return { ok: false, error: "No response from Claude" as const };
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    return { ok: false, error: "No response from Perplexity" as const };
   }
 
   let report: any;
   try {
-    report = safeJsonParse(content.text);
+    report = safeJsonParse(content);
   } catch (e) {
-    return { ok: false, error: "Failed to parse Claude JSON" as const };
+    return { ok: false, error: "Failed to parse Perplexity JSON" as const };
   }
 
   if (Array.isArray(report.key_stories)) {
@@ -131,7 +139,15 @@ Now produce the JSON brief.`,
     report.key_stories = [];
   }
 
-  report.riskScore = await scoreRisk(company, report);
+  // â”€â”€ Score reputation risk across 4 dimensions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Runs in parallel with nothing â€” fast Claude Haiku call (~200ms).
+  // Stores { overall, reputational, regulatory, operational, market } on the report.
+  report.riskScore = await scoreRisk(company, report);  // â† ADD THIS
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return { ok: true, saved: { company, hours, report } };
 }
+
+
+
+
