@@ -1,20 +1,12 @@
 ﻿"use server";
 
 import OpenAI from "openai";
-import { getArticles } from "@/lib/memory-store";
-import { scoreRisk } from "@/lib/score-risk";  // â† ADD THIS
+import { scoreRisk } from "@/lib/score-risk";
 
-function compactMentions(articles: any[], limit = 18) {
-  return articles.slice(0, limit).map((a: any) => ({
-    title: a.title,
-    url: a.url,
-    source: a.source,
-    publishedAt: a.publishedAt,
-    snippet: a.snippet,
-    tone: a.tone,
-    tags: a.tags,
-  }));
-}
+const QUERY_OVERRIDES: Record<string, string> = {
+  "AG Insurance": "AG Insurance Belgium",
+  "Huseierne": "Huseierne Norge",
+};
 
 function safeJsonParse(text: string) {
   const match = text.match(/\{[\s\S]*\}/);
@@ -33,50 +25,7 @@ export async function generateReportAction(company: string, hours: number = 24) 
     baseURL: "https://api.perplexity.ai",
   });
 
-  const all = await getArticles();
-
-  const normalise = (s: string) => s.toLowerCase().trim();
-  const filteredByCompany = all.filter((a: any) => {
-    if (!a.company) return true;
-    const stored = normalise(String(a.company));
-    const requested = normalise(String(company));
-    return stored === requested || requested.startsWith(stored) || requested.includes(stored);
-  });
-
-  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const filtered = filteredByCompany.filter((a: any) => {
-    if (!a.publishedAt) return true;
-    const t = new Date(a.publishedAt).getTime();
-    return isNaN(t) ? true : t >= cutoff;
-  });
-
-  const finalArticles = filtered.length > 0 ? filtered : filteredByCompany;
-  const mentions = compactMentions(finalArticles, 18);
-
-  console.log(`[${company}] total:${all.length} byCompany:${filteredByCompany.length} filtered:${filtered.length} sending:${mentions.length}`);
-
-  if (mentions.length === 0) {
-    return {
-      ok: true,
-      saved: {
-        company,
-        hours,
-        report: {
-          what_changed: [],
-          why_it_matters: [],
-          key_stories: [],
-          watchpoints: ["No articles found for this company."],
-          riskScore: {                        // â† score even empty reports
-            overall: "Low",
-            reputational: "Low",
-            regulatory: "Low",
-            operational: "Low",
-            market: "Low",
-          },
-        },
-      },
-    };
-  }
+  const query = QUERY_OVERRIDES[company] ?? company;
 
   const response = await perplexity.chat.completions.create({
     model: "sonar",
@@ -85,9 +34,9 @@ export async function generateReportAction(company: string, hours: number = 24) 
     messages: [
       {
         role: "system",
-        content: `You are a media intelligence analyst.
-You will be given a list of news mentions (already collected). Do NOT browse the web.
-Write an executive-friendly daily brief.
+        content: `You are a media intelligence analyst with real-time web access.
+Search the web for recent news about the company provided, focusing on the last ${hours} hours.
+Then write an executive-friendly daily brief.
 
 Return STRICT JSON only in this format:
 {
@@ -100,21 +49,16 @@ Return STRICT JSON only in this format:
 }
 
 Rules:
-- Base your output ONLY on the provided mentions.
+- Actively search for and use the most recent news you can find.
 - Keep each bullet 1 sentence, concrete, non-hype.
-- "key_stories" should include 5-8 items, deduplicated, with the original URLs.
-- If mentions are thin, be transparent in watchpoints.
-- NEVER put "no new mentions" or "no coverage" or "no articles found" in what_changed or why_it_matters. If coverage is thin, still summarise what IS known. Reserve absence-of-coverage notes strictly for watchpoints.
-- what_changed bullets must describe actual developments, not the absence of them.`,
+- "key_stories" should include 3-5 items with real URLs.
+- If coverage is thin, be transparent in watchpoints.
+- NEVER put "no new mentions" or "no coverage" in what_changed or why_it_matters.
+- what_changed bullets must describe actual developments.`,
       },
       {
         role: "user",
-        content: `Company: ${company}
-Time window: last ${hours} hours
-Mentions (JSON):
-${JSON.stringify(mentions, null, 2)}
-
-Now produce the JSON brief.`,
+        content: `Search for and summarise the latest news about: ${query}. Focus on the last ${hours} hours. Return only the JSON brief.`,
       },
     ],
   });
@@ -139,15 +83,11 @@ Now produce the JSON brief.`,
     report.key_stories = [];
   }
 
-  // â”€â”€ Score reputation risk across 4 dimensions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Runs in parallel with nothing â€” fast Claude Haiku call (~200ms).
-  // Stores { overall, reputational, regulatory, operational, market } on the report.
-  report.riskScore = await scoreRisk(company, report);  // â† ADD THIS
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  try {
+    report.riskScore = await scoreRisk(company, report);
+  } catch {
+    console.error("scoreRisk API error");
+  }
 
   return { ok: true, saved: { company, hours, report } };
 }
-
-
-
-
