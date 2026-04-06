@@ -12,5 +12,11 @@
     "app/api/export/pdf-concise/route.ts": {
       "includeFiles": "scripts/**"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/daily-briefing",
+      "schedule": "0 7 * * 1-5"
+    }
+  ]
 }
