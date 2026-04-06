@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "app/api/send-briefing/route.ts": {
+      "includeFiles": "scripts/**"
+    },
+    "app/api/export/pdf/route.ts": {
+      "includeFiles": "scripts/**"
+    },
+    "app/api/export/pdf/combined/route.ts": {
+      "includeFiles": "scripts/**"
+    },
+    "app/api/export/pdf-concise/route.ts": {
+      "includeFiles": "scripts/**"
+    }
+  }
+}
