@@ -1,238 +1,152 @@
-# Debate Motion Generator
+# Linq Advisors — Daily Intelligence Reporting Tool
 
-An AI-powered web application that generates compelling debate motions based on recent news and trending topics. Built with Next.js 14, Perplexity AI, and deployed on Vercel.
+A Next.js web application that automatically scrapes news, generates AI-powered intelligence briefings, exports them as PDFs, and emails them daily.
 
-![Debate Motion Generator](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?style=for-the-badge&logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?style=for-the-badge&logo=tailwind-css)
+## Live URL
 
-## Features
+[https://report-generator-pdf-git-main-keitaorlovska-2175s-projects.vercel.app/](https://report-generator-pdf-git-main-keitaorlovska-2175s-projects.vercel.app/)
 
-- **AI-Powered Generation**: Uses Perplexity AI with real-time web search to generate debate motions based on current events
-- **Flexible Input**: Enter a specific topic or explore trending news automatically
-- **Beautiful UI**: Modern, responsive design with smooth animations and loading states
-- **Server-Side Processing**: Secure API key management with Next.js Server Actions
-- **Vercel Ready**: Optimized for seamless deployment on Vercel
+---
 
-## Prerequisites
+## What it does
 
-Before you begin, ensure you have the following installed:
-- Node.js 18.x or higher
-- npm or yarn package manager
-- A Perplexity API key (see below)
+- Fetches latest news articles for selected companies using Perplexity AI
+- Generates structured intelligence reports using Claude (Anthropic)
+- Exports reports as formatted PDFs (Morning Brief + Full Intelligence Report)
+- Sends both PDFs automatically every weekday morning at 8am via email
+- Allows manual generation and export at any time via the web interface
 
-## Getting Your Perplexity API Key
+---
 
-1. Visit [Perplexity AI](https://www.perplexity.ai/)
-2. Sign up for an account or log in
-3. Navigate to [API Settings](https://www.perplexity.ai/settings/api)
-4. Generate a new API key
-5. Copy the API key for use in the next section
+## Tech Stack
 
-## Local Development Setup
+- **Framework:** Next.js 14 (App Router)
+- **Hosting:** Vercel
+- **AI:** Anthropic Claude (report generation), Perplexity AI (news scraping)
+- **Email:** Resend
+- **Database:** Upstash Redis (company list storage)
+- **PDF:** pdfkit, pdf-lib
 
-### 1. Clone or Download the Project
+---
 
-```bash
-git clone <your-repo-url>
-cd debate-motion-generator
-```
+## Getting Started
 
-### 2. Install Dependencies
+### 1. Clone the repository
 
 ```bash
+git clone https://github.com/your-org/report-generator-pdf.git
+cd report-generator-pdf
 npm install
 ```
 
-### 3. Configure Environment Variables
+### 2. Set up environment variables
 
-Create a `.env.local` file in the root directory:
+Create a `.env.local` file in the root of the project:
 
-```bash
-PERPLEXITY_API_KEY=your_api_key_here
+```env
+ANTHROPIC_API_KEY=your_anthropic_api_key
+RESEND_API_KEY=your_resend_api_key
+BRIEFING_FROM=briefing@linqadvisors.com
+BRIEFING_RECIPIENTS=recipient@linqadvisors.com
+UPSTASH_REDIS_REST_URL=your_upstash_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
+PERPLEXITY_API_KEY=your_perplexity_api_key
+CRON_SECRET=any_random_secret_string
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
-Replace `your_api_key_here` with your actual Perplexity API key.
-
-**Important**: Never commit your `.env.local` file to version control. It's already included in `.gitignore`.
-
-### 4. Run the Development Server
+### 3. Run locally
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Deployment to Vercel
+---
 
-### Option 1: Deploy via Vercel CLI
+## Deployment (Vercel)
 
-1. Install Vercel CLI:
-```bash
-npm install -g vercel
+1. Push the repository to GitHub
+2. Import the project in [Vercel](https://vercel.com)
+3. Add all environment variables listed above in Vercel → Settings → Environment Variables
+4. Set `NEXT_PUBLIC_BASE_URL` to your Vercel deployment URL
+5. Deploy
+
+> **Note:** The automated 8am cron job requires a Vercel Pro plan ($20/month). On the free plan everything else works — only the automation is disabled.
+
+---
+
+## Automated Daily Emails
+
+The tool is configured to automatically run every weekday at 8am Oslo time (7am UTC). It:
+
+1. Fetches all companies from the database
+2. Generates intelligence reports for each
+3. Emails both PDFs to all configured recipients
+
+To test the automation manually, visit:
+```
+https://your-app-url.vercel.app/api/cron/daily-briefing
 ```
 
-2. Deploy:
-```bash
-vercel
+To change the schedule, edit `vercel.json`:
+```json
+"schedule": "0 7 * * 1-5"
 ```
 
-3. Follow the prompts and add your environment variable:
-   - Set `PERPLEXITY_API_KEY` when prompted
+---
 
-### Option 2: Deploy via Vercel Dashboard
+## Environment Variables Reference
 
-1. Push your code to GitHub, GitLab, or Bitbucket
+| Variable | Description | Where to get it |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Claude AI API key | [console.anthropic.com](https://console.anthropic.com) |
+| `RESEND_API_KEY` | Email sending API key | [resend.com](https://resend.com) |
+| `BRIEFING_FROM` | Sender email address | Must be from a verified Resend domain |
+| `BRIEFING_RECIPIENTS` | Comma-separated recipient emails | Set manually |
+| `UPSTASH_REDIS_REST_URL` | Redis database URL | [upstash.com](https://upstash.com) |
+| `UPSTASH_REDIS_REST_TOKEN` | Redis auth token | [upstash.com](https://upstash.com) |
+| `PERPLEXITY_API_KEY` | News scraping API key | [perplexity.ai](https://perplexity.ai) |
+| `CRON_SECRET` | Secures the cron endpoint | Any random string |
+| `NEXT_PUBLIC_BASE_URL` | App base URL | Your Vercel deployment URL |
 
-2. Visit [Vercel](https://vercel.com/) and sign in
-
-3. Click "Add New Project"
-
-4. Import your repository
-
-5. Configure your project:
-   - **Framework Preset**: Next.js
-   - **Root Directory**: ./
-   - **Build Command**: `npm run build` (default)
-   - **Output Directory**: `.next` (default)
-
-6. Add Environment Variables:
-   - Click "Environment Variables"
-   - Add `PERPLEXITY_API_KEY` with your API key
-   - Set it for Production, Preview, and Development environments
-
-7. Click "Deploy"
-
-Your application will be live in minutes!
-
-## Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PERPLEXITY_API_KEY` | Your Perplexity AI API key | Yes |
+---
 
 ## Project Structure
 
 ```
-debate-motion-generator/
 ├── app/
 │   ├── actions/
-│   │   └── generate-motions.ts    # Server action for Perplexity API
-│   ├── globals.css                # Global styles
-│   ├── layout.tsx                 # Root layout
-│   └── page.tsx                   # Main page
+│   │   ├── generate-motions.ts       # Legacy report generation
+│   │   └── generate-report.ts        # Main AI report generation
+│   └── api/
+│       ├── companies/                # Company CRUD endpoints
+│       ├── export/pdf/               # PDF export endpoints
+│       ├── scrape-news/              # News scraping endpoint
+│       ├── send-briefing/            # Email sending endpoint
+│       └── cron/daily-briefing/      # Automated 8am cron job
 ├── components/
-│   ├── ui/                        # Shadcn UI components
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── input.tsx
-│   │   └── label.tsx
-│   └── motion-generator-form.tsx  # Main form component
-├── lib/
-│   └── utils.ts                   # Utility functions
-├── types/
-│   └── actions.ts                 # TypeScript type definitions
-├── .env.local                     # Environment variables (create this)
-├── .gitignore
-├── next.config.mjs
-├── package.json
-├── postcss.config.mjs
-├── tailwind.config.ts
-├── tsconfig.json
-└── README.md
+│   └── MotionGeneratorForm.tsx       # Main UI component
+├── data/
+│   └── companies.ts                  # Company type definitions
+├── vercel.json                        # Vercel config + cron schedule
+└── .env.local                         # Local environment variables (not committed)
 ```
-
-## How It Works
-
-1. **User Input**: Users can either enter a specific topic or leave it blank to explore trending news
-2. **Server Action**: The form submits to a Next.js Server Action that calls the Perplexity API
-3. **AI Processing**: Perplexity's Sonar model searches the web for recent news and generates 3-5 debate motions
-4. **Response Parsing**: The server parses the AI response and returns structured motion data
-5. **Display**: The client renders the motions in beautiful cards with categories and reasoning
-
-## Technologies Used
-
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **AI Service**: Perplexity AI (Sonar model with real-time web search)
-- **Styling**: Tailwind CSS
-- **UI Components**: Shadcn UI (built on Radix UI)
-- **Icons**: Lucide React
-- **Validation**: Zod
-- **Deployment**: Vercel
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
-
-## Customization
-
-### Changing the Number of Motions
-
-Edit `app/actions/generate-motions.ts` and modify the prompt to request a different number of motions (currently set to 3-5).
-
-### Adjusting the UI Theme
-
-Edit `app/globals.css` to modify the color scheme. The app uses CSS variables for theming.
-
-### Adding More Motion Categories
-
-The AI automatically categorizes motions, but you can guide it by modifying the system prompt in `app/actions/generate-motions.ts`.
-
-## Troubleshooting
-
-### API Key Error
-
-**Error**: "Perplexity API key is not configured"
-
-**Solution**: Ensure your `.env.local` file exists with the correct variable name: `PERPLEXITY_API_KEY=your_key`
-
-### Invalid API Key
-
-**Error**: "Invalid Perplexity API key"
-
-**Solution**: Verify your API key is correct and hasn't expired. Generate a new one if needed.
-
-### No Motions Generated
-
-**Error**: "No motions were generated"
-
-**Solution**: The AI response may have been malformed. Try again or check your network connection.
-
-### Build Errors on Vercel
-
-**Solution**: 
-1. Ensure all dependencies are in `package.json`
-2. Check that environment variables are set in Vercel dashboard
-3. Review build logs for specific errors
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is open source and available under the MIT License.
-
-## Support
-
-If you encounter any issues or have questions:
-1. Check the Troubleshooting section above
-2. Review the [Perplexity API Documentation](https://docs.perplexity.ai/)
-3. Check [Next.js Documentation](https://nextjs.org/docs)
-
-## Acknowledgments
-
-- Built with [Next.js](https://nextjs.org/)
-- AI powered by [Perplexity](https://www.perplexity.ai/)
-- UI components from [Shadcn UI](https://ui.shadcn.com/)
-- Icons from [Lucide](https://lucide.dev/)
 
 ---
 
-Made with ❤️ for the debate community
+## Domain Setup
 
+To send emails from `@linqadvisors.com`, the following DNS records must be added to the domain in Domeneshop (managed by Proccano):
+
+| Type | Name | Content | Priority |
+|---|---|---|---|
+| TXT | `resend._domainkey` | `p=MIGfMA0GCSqG...` | - |
+| MX | `send` | `feedback-smtp.eu-west-1.amazonses.com` | 10 |
+| TXT | `send` | `v=spf1 include:amazonses.com ~all` | - |
+| TXT | `_dmarc` | `v=DMARC1; p=none;` | - |
+
+---
+
+*Developed by Keita — Intern, Linq Advisors — 2026*
