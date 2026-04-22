@@ -4,11 +4,8 @@
     "name": "Europol",
     "country": "EU",
     "industry": "Law Enforcement",
-    "tags": [
-      "government",
-      "security",
-      "EU"
-    ]
+    "tags": ["government", "security", "EU"],
+    "type": "client"
   },
   {
     "id": "saudi-aramco",
@@ -17,97 +14,16 @@
     "country": "SA",
     "market": "Tadawul",
     "industry": "Energy",
-    "tags": [
-      "oil & gas",
-      "state-owned"
-    ]
-  },
-  {
-    "id": "statens-vegvesen",
-    "name": "Statens vegvesen",
-    "country": "NO",
-    "industry": "Government",
-    "tags": [
-      "roads",
-      "transport",
-      "Norway"
-    ]
-  },
-  {
-    "id": "ag-insurance",
-    "name": "AG Insurance",
-    "country": "BE",
-    "industry": "Insurance",
-    "tags": [
-      "insurance",
-      "Belgium",
-      "finance"
-    ]
-  },
-  {
-    "id": "huseierne",
-    "name": "Huseierne",
-    "country": "NO",
-    "industry": "Real Estate",
-    "tags": [
-      "homeowners",
-      "Norway",
-      "housing"
-    ]
-  },
-  {
-    "id": "kystverket",
-    "name": "Kystverket",
-    "country": "NO",
-    "industry": "Government",
-    "tags": [
-      "coastal",
-      "maritime",
-      "Norway"
-    ]
-  },
-  {
-    "id": "ing-romania",
-    "name": "ING Romania",
-    "country": "RO",
-    "industry": "Banking",
-    "tags": [
-      "banking",
-      "Romania",
-      "finance"
-    ]
-  },
-  {
-    "id": "marynissen",
-    "name": "Marynissen",
-    "country": "BE",
-    "industry": "Construction",
-    "tags": [
-      "construction",
-      "Belgium"
-    ]
-  },
-  {
-    "id": "miltenyi-biomedicine",
-    "name": "Miltenyi Biomedicine",
-    "country": "DE",
-    "industry": "Healthcare",
-    "tags": [
-      "biotech",
-      "cell therapy",
-      "Germany"
-    ]
+    "tags": ["oil & gas", "state-owned"],
+    "type": "client"
   },
   {
     "id": "magnum-ice-cream",
     "name": "Magnum Ice Cream Company",
     "country": "GB",
     "industry": "Consumer Goods",
-    "tags": [
-      "ice cream",
-      "FMCG",
-      "Unilever"
-    ]
+    "tags": ["ice cream", "FMCG", "Unilever"],
+    "type": "client"
   },
   {
     "id": "unilever",
@@ -116,67 +32,73 @@
     "country": "GB",
     "market": "NYSE",
     "industry": "Consumer Goods",
-    "tags": [
-      "FMCG",
-      "consumer goods",
-      "global"
-    ]
-  },
-  {
-    "id": "bgts",
-    "name": "BGTS",
-    "country": "BE",
-    "industry": "Technology",
-    "tags": [
-      "technology",
-      "services"
-    ]
-  },
-  {
-    "id": "randstad",
-    "name": "Randstad",
-    "ticker": "RAND.AS",
-    "country": "NL",
-    "market": "Euronext",
-    "industry": "Staffing",
-    "tags": [
-      "recruitment",
-      "HR",
-      "Netherlands"
-    ]
+    "tags": ["FMCG", "consumer goods", "global"],
+    "type": "client"
   },
   {
     "id": "bauer-media-outdoor",
     "name": "Bauer Media Outdoor",
     "country": "DE",
     "industry": "Media",
-    "tags": [
-      "outdoor advertising",
-      "media",
-      "Germany"
-    ]
+    "tags": ["outdoor advertising", "media", "Germany"],
+    "type": "client"
   },
   {
-    "id": "bp",
-    "name": "BP",
-    "ticker": "BP",
+    "id": "bgts",
+    "name": "BGTS",
+    "country": "GB",
+    "industry": "Technology",
+    "tags": ["engineering", "software", "technology"],
+    "type": "client",
+    "searchQuery": "BGTS bgts.com technology engineering company London"
+  },
+  {
+    "id": "coca-cola-ep",
+    "name": "Coca-Cola European Partners",
+    "ticker": "CCEP",
     "country": "GB",
     "market": "NYSE",
-    "industry": "Energy",
-    "tags": [
-      "oil & gas",
-      "energy",
-      "renewables"
-    ]
+    "industry": "Consumer Goods",
+    "tags": ["beverages", "FMCG", "Europe"],
+    "type": "prospect"
   },
   {
-    "id": "aquora",
-    "name": "Aquora",
+    "id": "nif",
+    "name": "NATO Innovation Fund",
+    "country": "EU",
+    "industry": "Venture Capital",
+    "tags": ["NATO", "deep tech", "defence", "venture capital"],
+    "type": "prospect",
+    "searchQuery": "NATO Innovation Fund NIF nif.fund"
+  },
+  {
+    "id": "paragraf",
+    "name": "Paragraf",
+    "country": "GB",
     "industry": "Technology",
-    "tags": [
-      "technology",
-      "services"
-    ]
+    "tags": ["graphene", "semiconductors", "deep tech"],
+    "type": "prospect",
+    "searchQuery": "Paragraf paragraf.com graphene electronics company Cambridge"
+  },
+  {
+    "id": "tcs",
+    "name": "Tata Consultancy Services",
+    "ticker": "TCS.NS",
+    "country": "IN",
+    "market": "NSE",
+    "industry": "Technology",
+    "tags": ["IT services", "consulting", "audit"],
+    "type": "prospect",
+    "searchQuery": "Tata Consultancy Services TCS IT consulting"
+  },
+  {
+    "id": "amrize",
+    "name": "Amrize",
+    "country": "US",
+    "industry": "Construction Materials",
+    "tags": ["construction", "materials", "cement"],
+    "type": "prospect",
+    "searchQuery": "Amrize amrize.com construction materials company"
   },
   {
     "id": "lloyds",
@@ -185,10 +107,27 @@
     "country": "GB",
     "market": "NYSE",
     "industry": "Banking",
-    "tags": [
-      "banking",
-      "UK",
-      "finance"
-    ]
+    "tags": ["banking", "UK", "finance"],
+    "type": "prospect"
+  },
+  {
+    "id": "bp",
+    "name": "BP",
+    "ticker": "BP",
+    "country": "GB",
+    "market": "NYSE",
+    "industry": "Energy",
+    "tags": ["oil & gas", "energy", "renewables"],
+    "type": "prospect"
+  },
+  {
+    "id": "echelon",
+    "name": "Echelon Digital",
+    "country": "GB",
+    "industry": "Digital Agency",
+    "tags": ["PR", "AI", "digital", "sales"],
+    "type": "prospect",
+    "searchQuery": "Echelon Digital echelon-digital.co AI agency"
   }
+
 ]

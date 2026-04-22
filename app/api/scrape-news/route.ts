@@ -13,6 +13,17 @@ const QUERY_OVERRIDES: Record<string, string> = {
   "Huseierne": "Huseierne Norge",
 };
 
+const EXCLUDE_TERMS: Record<string, string[]> = {
+  "bgts": [
+    "BTS", "BGT", "Britain's Got Talent", "HYBE", "K-pop", "Kpop", "Bang Si-Hyuk",
+    "Balai Geoteknik", "Terowongan", "Struktur", "Indonesia", "TAHUN", "Bina Marga",
+  ],
+}
+
+const REQUIRE_TERMS: Record<string, string[]> = {
+  "bgts": ["bgts.com", "bgts.com/", "BGTS software", "BGTS technology", "BGTS engineering", "BGTS IT", "BGTS consulting"],
+}
+
 type PerplexityResult = {
   company?: string;
   mentions?: Array<{
@@ -43,6 +54,37 @@ function loadCompanies(): Company[] {
   }
 }
 
+function buildCompanyContext(company: Company): string {
+  const parts: string[] = []
+  if (company.industry) parts.push(company.industry)
+  if (company.country) parts.push(`based in ${company.country}`)
+  return parts.length > 0 ? ` (${parts.join(", ")})` : ""
+}
+
+function isRelevant(
+  companyId: string,
+  headline: string,
+  summary: string,
+  url: string,
+): boolean {
+  const text = `${headline} ${summary} ${url}`.toLowerCase()
+
+  const excluded = EXCLUDE_TERMS[companyId] ?? []
+  for (const term of excluded) {
+    if (text.includes(term.toLowerCase())) return false
+  }
+
+  const required = REQUIRE_TERMS[companyId]
+  if (required && required.length > 0) {
+    // Also treat a bgts.com URL as a pass
+    const urlMatch = url.toLowerCase().includes("bgts.com")
+    const hasMatch = urlMatch || required.some((t) => text.includes(t.toLowerCase()))
+    if (!hasMatch) return false
+  }
+
+  return true
+}
+
 export async function POST(req: NextRequest) {
   const apiKey = process.env.PERPLEXITY_API_KEY;
   if (!apiKey) {
@@ -69,7 +111,8 @@ export async function POST(req: NextRequest) {
   const allArticles: StoredArticle[] = [];
 
   for (const company of companiesToScrape) {
-    const query = QUERY_OVERRIDES[company.name] ?? company.name;
+    const query = company.searchQuery ?? QUERY_OVERRIDES[company.name] ?? company.name;
+    const context = buildCompanyContext(company)
 
     const response = await perplexity.chat.completions.create({
       model: "sonar",
@@ -99,11 +142,14 @@ Rules:
 - Focus on the last 24 hours. If fewer than 8 items exist, expand to last 7 days.
 - Every mention MUST have a direct public link.
 - Deduplicate similar stories.
-- Aim for 10–15 mentions when possible.`,
+- Aim for 10–15 mentions when possible.
+- Only return articles directly about this specific company. Skip unrelated entities with similar names.`,
         },
         {
           role: "user",
-          content: `Collect recent news mentions about: ${query}. Return only valid JSON.`,
+          content: `Find recent news about "${company.name}"${context} — a ${company.industry ?? "company"} — using this search: ${query}
+
+Only include articles about this specific organisation. Return only valid JSON.`,
         },
       ],
     });
@@ -121,13 +167,20 @@ Rules:
     const mentions = parsed?.mentions ?? [];
     for (const m of mentions) {
       if (!m?.link) continue;
+
+      const headline = m.headline ?? ""
+      const summary = m.summary ?? ""
+      const url = m.link ?? ""
+
+      if (!isRelevant(company.id, headline, summary, url)) continue
+
       allArticles.push({
         company: company.name,
-        title: m.headline ?? "(No headline)",
-        url: m.link,
+        title: headline || "(No headline)",
+        url,
         source: m.source ?? "Unknown",
         publishedAt: m.published_at ?? new Date().toISOString(),
-        snippet: m.summary ?? "",
+        snippet: summary,
         tone: m.tone ?? "neutral",
         tags: m.tags ?? [],
       });

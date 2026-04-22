@@ -1,7 +1,10 @@
 ﻿"use server";
 
 import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
 import { scoreRisk } from "@/lib/score-risk";
+import type { Company } from "@/data/companies";
 
 const QUERY_OVERRIDES: Record<string, string> = {
   "AG Insurance": "AG Insurance Belgium",
@@ -12,6 +15,27 @@ function safeJsonParse(text: string) {
   const match = text.match(/\{[\s\S]*\}/);
   const json = match ? match[0] : text;
   return JSON.parse(json);
+}
+
+function loadCompanies(): Company[] {
+  try {
+    const raw = fs.readFileSync(
+      path.join(process.cwd(), "data", "companies.json"),
+      "utf-8"
+    );
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function resolveQuery(companyName: string): string {
+  const companies = loadCompanies();
+  const match = companies.find(
+    (c) => c.name.toLowerCase() === companyName.toLowerCase()
+  );
+  // Priority: searchQuery from JSON → QUERY_OVERRIDES → raw name
+  return match?.searchQuery ?? QUERY_OVERRIDES[companyName] ?? companyName;
 }
 
 export async function generateReportAction(company: string, hours: number = 24) {
@@ -25,7 +49,7 @@ export async function generateReportAction(company: string, hours: number = 24) 
     baseURL: "https://api.perplexity.ai",
   });
 
-  const query = QUERY_OVERRIDES[company] ?? company;
+  const query = resolveQuery(company);
 
   const response = await perplexity.chat.completions.create({
     model: "sonar",
@@ -54,7 +78,8 @@ Rules:
 - "key_stories" should include 3-5 items with real URLs.
 - If coverage is thin, be transparent in watchpoints.
 - NEVER put "no new mentions" or "no coverage" in what_changed or why_it_matters.
-- what_changed bullets must describe actual developments.`,
+- what_changed bullets must describe actual developments.
+- Only return coverage about this specific organisation. Ignore unrelated entities sharing a similar name or abbreviation.`,
       },
       {
         role: "user",

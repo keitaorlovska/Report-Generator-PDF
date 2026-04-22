@@ -10,6 +10,7 @@ export interface Company {
   market?: string
   industry?: string
   tags?: string[]
+  type?: "client" | "prospect"  // classification set via Manage Entities UI
   addedAt?: string  // ISO timestamp, set when company is added via UI
 }
 

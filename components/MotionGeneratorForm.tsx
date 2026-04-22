@@ -46,7 +46,7 @@ function formatDate(iso: string) {
   catch { return iso }
 }
 
-const EMPTY_FORM = { name: "", ticker: "", country: "", market: "", industry: "", tags: "" }
+const EMPTY_FORM = { name: "", ticker: "", country: "", market: "", industry: "", tags: "", type: "" }
 
 const SAGE = "#1C3A2E"
 const CREAM = "#F7F4EF"
@@ -85,7 +85,15 @@ export function MotionGeneratorForm() {
   function openManager() { setModalMode("manager") }
   function openAdd() { setForm(EMPTY_FORM); setFormError(""); setAutoFillError(""); setEditingId(null); setModalMode("add") }
   function openEdit(company: Company) {
-    setForm({ name: company.name, ticker: company.ticker ?? "", country: company.country ?? "", market: company.market ?? "", industry: company.industry ?? "", tags: (company.tags ?? []).join(", ") })
+    setForm({
+      name: company.name,
+      ticker: company.ticker ?? "",
+      country: company.country ?? "",
+      market: company.market ?? "",
+      industry: company.industry ?? "",
+      tags: (company.tags ?? []).join(", "),
+      type: company.type ?? "",
+    })
     setFormError(""); setAutoFillError(""); setEditingId(company.id); setModalMode("edit")
   }
   function closeModal() { setModalMode(null); setEditingId(null); setFormError(""); setAutoFillError("") }
@@ -115,6 +123,7 @@ export function MotionGeneratorForm() {
       ...(form.market && { market: form.market.trim() }),
       ...(form.industry && { industry: form.industry.trim() }),
       tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      ...(form.type && { type: form.type as "client" | "prospect" }),
       ...(isNew && { addedAt: new Date().toISOString() }),
     }
     try {
@@ -224,17 +233,14 @@ export function MotionGeneratorForm() {
     try {
       for (let i = 0; i < ids.length; i++) {
         if (cancelRef.current) break
-
         const id = ids[i]
         setScrapeProgress(i + 1)
-
         try {
           const res = await fetch("/api/scrape-news", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ selectedCompanyIds: [id] }),
           }).then((r) => r.json())
-
           if (res?.ok) {
             totalCount += res.count ?? 0
             allArticles.push(...(res.articles ?? []))
@@ -242,13 +248,10 @@ export function MotionGeneratorForm() {
         } catch {
           // skip failed individual company, continue with rest
         }
-
-        // 2-second delay between requests to avoid Perplexity rate limiting
         if (i < ids.length - 1 && !cancelRef.current) {
           await sleep(2000)
         }
       }
-
       if (allArticles.length > 0) {
         setScrapeCount(totalCount)
         setScrapedArticles(allArticles.slice(0, 10))
@@ -783,6 +786,16 @@ export function MotionGeneratorForm() {
                       {(company as any).addedAt && (Date.now() - new Date((company as any).addedAt).getTime()) < 7 * 24 * 60 * 60 * 1000
                         ? <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 20, background: "rgba(28,58,46,0.1)", color: SAGE }}>New</span>
                         : <span style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em", padding: "2px 6px", borderRadius: 20, background: "#EAE6DF", color: "#8A8580" }}>Existing</span>}
+                      {company.type && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                          padding: "2px 6px", borderRadius: 20,
+                          background: company.type === "client" ? "rgba(37,99,235,0.1)" : "rgba(217,119,6,0.1)",
+                          color: company.type === "client" ? "#1D4ED8" : "#B45309",
+                        }}>
+                          {company.type}
+                        </span>
+                      )}
                     </div>
                     <p style={{ fontSize: 11, color: "#8A8580", marginTop: 2 }}>
                       {[company.country, company.industry].filter(Boolean).join(" · ")}
@@ -868,7 +881,7 @@ export function MotionGeneratorForm() {
               ))}
             </div>
 
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8580", display: "block", marginBottom: 5 }}>Tags (comma separated)</label>
               <input
                 type="text"
@@ -877,6 +890,19 @@ export function MotionGeneratorForm() {
                 onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
                 style={{ width: "100%", borderRadius: 10, padding: "10px 14px", fontSize: 13, border: `1px solid ${BORDER}`, background: CREAM, color: "#2C2820", outline: "none", opacity: autoFilling ? 0.6 : 1, boxSizing: "border-box" }}
               />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8A8580", display: "block", marginBottom: 5 }}>Type</label>
+              <select
+                value={form.type}
+                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                style={{ width: "100%", borderRadius: 10, padding: "10px 14px", fontSize: 13, border: `1px solid ${BORDER}`, background: CREAM, color: form.type ? "#2C2820" : "#8A8580", outline: "none", boxSizing: "border-box" as const, cursor: "pointer" }}
+              >
+                <option value="">— Unclassified —</option>
+                <option value="client">Client</option>
+                <option value="prospect">Prospect</option>
+              </select>
             </div>
 
             {formError && <p style={{ fontSize: 11, color: "#EF4444", marginBottom: 12 }}>{formError}</p>}
