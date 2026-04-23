@@ -1,93 +1,66 @@
-# Linq Advisors — Daily Intelligence Reporting Tool
+# Linq Advisors — Intelligence Report
 
-A Next.js web application that automatically scrapes news, generates AI-powered intelligence briefings, exports them as PDFs, and emails them daily.
-
-## Live URL
-
-[https://report-generator-pdf-git-main-keitaorlovska-2175s-projects.vercel.app/](https://report-generator-pdf-git-main-keitaorlovska-2175s-projects.vercel.app/)
+An AI-powered daily briefing tool that monitors news coverage for clients and prospects, generates executive intelligence reports, and delivers them by email every weekday morning.
 
 ---
 
-## What it does
+## What It Does
 
-- Fetches latest news articles for selected companies using Perplexity AI
-- Generates structured intelligence reports using Claude (Anthropic)
-- Exports reports as formatted PDFs (Morning Brief + Full Intelligence Report)
-- Sends both PDFs automatically every weekday morning at 8am via email
-- Allows manual generation and export at any time via the web interface
-
----
-
-## Tech Stack
-
-- **Framework:** Next.js 14 (App Router)
-- **Hosting:** Vercel
-- **AI:** Anthropic Claude (report generation), Perplexity AI (news scraping)
-- **Email:** Resend
-- **Database:** Upstash Redis (company list storage)
-- **PDF:** pdfkit, pdf-lib
+- Monitors a configurable list of companies (clients & prospects) for news coverage
+- Fetches articles in real time using Perplexity AI
+- Generates structured, executive-ready intelligence briefings per company
+- Exports reports as PDF — individual company reports or a combined morning brief
+- Sends briefings automatically every weekday at 8am Oslo time
+- Fully manageable via the web interface — no code required for day-to-day use
 
 ---
 
-## Getting Started
+## Using the App
 
-### 1. Clone the repository
+### Managing Companies
+Click **Entities** in the top navigation bar to open the company manager.
 
-```bash
-git clone https://github.com/your-org/report-generator-pdf.git
-cd report-generator-pdf
-npm install
-```
+- **Add** a new company using the Add entity button
+- **Edit** any company to update its details or classification
+- **Delete** companies that are no longer relevant
+- **Drag** to reorder the list
 
-### 2. Set up environment variables
+When adding a company, fill in:
 
-Create a `.env.local` file in the root of the project:
+| Field | Description |
+|---|---|
+| Name | Company display name |
+| Country | Two-letter country code (e.g. GB, NO, US) |
+| Industry | Sector (e.g. Technology, Banking, Energy) |
+| Type | Client or Prospect |
+| Search Query Override | Use this when the company name is ambiguous — e.g. set `bgts.com IT services London` instead of just `BGTS` to avoid fetching unrelated news |
+| Tags | Optional keywords for filtering |
 
-```env
-ANTHROPIC_API_KEY=your_anthropic_api_key
-RESEND_API_KEY=your_resend_api_key
-BRIEFING_FROM=briefing@linqadvisors.com
-BRIEFING_RECIPIENTS=recipient@linqadvisors.com
-UPSTASH_REDIS_REST_URL=your_upstash_redis_url
-UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
-PERPLEXITY_API_KEY=your_perplexity_api_key
-CRON_SECRET=any_random_secret_string
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-```
+### Running a Daily Report
+1. Select the companies you want to include (all are selected by default)
+2. Click **Fetch latest articles** — this searches for recent news per company
+3. Once complete, click **Generate Daily Report**
+4. Briefings appear below, one card per company
 
-### 3. Run locally
+### Exporting
+- **PDF button** on any company card — exports that company's report
+- **Export all** — combined PDF covering all completed reports
+- **Morning Brief** — concise single-page summary PDF
 
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## Deployment (Vercel)
-
-1. Push the repository to GitHub
-2. Import the project in [Vercel](https://vercel.com)
-3. Add all environment variables listed above in Vercel → Settings → Environment Variables
-4. Set `NEXT_PUBLIC_BASE_URL` to your Vercel deployment URL
-5. Deploy
-
-> **Note:** The automated 8am cron job requires a Vercel Pro plan ($20/month). On the free plan everything else works — only the automation is disabled.
+### Sending the Briefing
+Click **Send Briefing** to email the full intelligence report to all configured recipients.
 
 ---
 
 ## Automated Daily Emails
 
-The tool is configured to automatically run every weekday at 8am Oslo time (7am UTC). It:
+The app is configured to run automatically every weekday at **9am Oslo time**. It fetches news, generates reports, and emails the briefing without any manual action required.
 
-1. Fetches all companies from the database
-2. Generates intelligence reports for each
-3. Emails both PDFs to all configured recipients
+> The automated schedule requires a Vercel Pro plan. On the free plan, everything works manually — only the automation is disabled.
 
-To test the automation manually, visit:
+To trigger it manually, visit:
 ```
-https://your-app-url.vercel.app/api/cron/daily-briefing
+https://vercel.com/linqs-projects/inteligence-report
 ```
 
 To change the schedule, edit `vercel.json`:
@@ -97,56 +70,100 @@ To change the schedule, edit `vercel.json`:
 
 ---
 
-## Environment Variables Reference
+## Deployment
 
-| Variable | Description | Where to get it |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | Claude AI API key | [console.anthropic.com](https://console.anthropic.com) |
-| `RESEND_API_KEY` | Email sending API key | [resend.com](https://resend.com) |
-| `BRIEFING_FROM` | Sender email address | Must be from a verified Resend domain |
-| `BRIEFING_RECIPIENTS` | Comma-separated recipient emails | Set manually |
-| `UPSTASH_REDIS_REST_URL` | Redis database URL | [upstash.com](https://upstash.com) |
-| `UPSTASH_REDIS_REST_TOKEN` | Redis auth token | [upstash.com](https://upstash.com) |
-| `PERPLEXITY_API_KEY` | News scraping API key | [perplexity.ai](https://perplexity.ai) |
-| `CRON_SECRET` | Secures the cron endpoint | Any random string |
-| `NEXT_PUBLIC_BASE_URL` | App base URL | Your Vercel deployment URL |
+The app is hosted on Vercel and connected to GitHub. Any push to the `main` branch automatically triggers a new deployment.
+
+```bash
+git add .
+git commit -m "your message"
+git push origin main
+```
+
+**Repository:** github.com/Linqadv/inteligence-report  
+**Hosting:** Vercel — Linqadv account
+
+---
+
+## Environment Variables
+
+All secrets are stored in **Vercel → Project → Settings → Environment Variables**. Never commit them to GitHub.
+
+| Variable | Description |
+|---|---|
+| `PERPLEXITY_API_KEY` | News fetching and report generation |
+| `RESEND_API_KEY` | Email delivery |
+| `BRIEFING_FROM` | Sender email (must be from verified domain) |
+| `BRIEFING_RECIPIENTS` | Comma-separated list of recipient emails |
+| `ANTHROPIC_API_KEY` | Claude AI (used in legacy features) |
+| `CRON_SECRET` | Secures the automated cron endpoint |
+| `NEXT_PUBLIC_BASE_URL` | Full URL of the deployed app |
+
+---
+
+## Local Development
+
+```bash
+git clone https://github.com/Linqadv/inteligence-report.git
+cd inteligence-report
+npm install
+```
+
+Create a `.env.local` file in the project root with all the variables listed above, then:
+
+```bash
+npm run dev
+```
+
+Open http://localhost:3000 in your browser.
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| Wrong news being fetched for a company | Edit the company → add a Search Query Override |
+| "No meaningful coverage found" | Normal for low-profile companies — no action needed |
+| Emails not sending | Check `RESEND_API_KEY` and `BRIEFING_FROM` in Vercel env variables |
+| Build failing on Vercel | Check the build logs — usually a missing environment variable |
+| Cron job not running | Requires Vercel Pro plan |
 
 ---
 
 ## Project Structure
 
 ```
-├── app/
-│   ├── actions/
-│   │   ├── generate-motions.ts       # Legacy report generation
-│   │   └── generate-report.ts        # Main AI report generation
-│   └── api/
-│       ├── companies/                # Company CRUD endpoints
-│       ├── export/pdf/               # PDF export endpoints
-│       ├── scrape-news/              # News scraping endpoint
-│       ├── send-briefing/            # Email sending endpoint
-│       └── cron/daily-briefing/      # Automated 8am cron job
-├── components/
-│   └── MotionGeneratorForm.tsx       # Main UI component
-├── data/
-│   └── companies.ts                  # Company type definitions
-├── vercel.json                        # Vercel config + cron schedule
-└── .env.local                         # Local environment variables (not committed)
+app/
+  actions/
+    generate-report.ts        — AI report generation
+  api/
+    companies/                — Company list CRUD
+    scrape-news/              — Article fetching via Perplexity
+    send-briefing/            — Email delivery via Resend
+    export/                   — PDF generation
+    cron/daily-briefing/      — Automated morning run
+components/
+  MotionGeneratorForm.tsx     — Main UI
+data/
+  companies.json              — Company list (editable via UI or directly)
+  companies.ts                — Company type definitions
+vercel.json                   — Hosting config and cron schedule
 ```
 
 ---
 
-## Domain Setup
+## Tech Stack
 
-To send emails from `@linqadvisors.com`, the following DNS records must be added to the domain in Domeneshop (managed by Proccano):
-
-| Type | Name | Content | Priority |
-|---|---|---|---|
-| TXT | `resend._domainkey` | `p=MIGfMA0GCSqG...` | - |
-| MX | `send` | `feedback-smtp.eu-west-1.amazonses.com` | 10 |
-| TXT | `send` | `v=spf1 include:amazonses.com ~all` | - |
-| TXT | `_dmarc` | `v=DMARC1; p=none;` | - |
+| | |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| AI | Perplexity AI (Sonar) |
+| Email | Resend |
+| PDF | pdfkit, pdf-lib |
+| Hosting | Vercel |
 
 ---
 
-*Developed by Keita — Intern, Linq Advisors — 2026*
+*Built by Keita — Linq Advisors — 2026*
