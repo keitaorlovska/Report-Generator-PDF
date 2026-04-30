@@ -92,6 +92,9 @@ Return STRICT JSON only:
 
 Rules:
 - Focus on the last 7 days. Prioritize the most recent items first.
+- PRIORITIZE these trusted sources: Reuters, Bloomberg, Financial Times, Yahoo Finance, 
+  BBC News, The Guardian, Associated Press, Wall Street Journal, CNBC, Forbes.
+- Also include relevant regional/industry sources when available.
 - Every mention MUST have a real, direct, publicly accessible URL.
 - Include financial news, regulatory news, partnerships, leadership changes, controversies.
 - Deduplicate — do not include the same story from multiple sources.
