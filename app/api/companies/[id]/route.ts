@@ -1,47 +1,33 @@
 // app/api/companies/[id]/route.ts
 import { NextResponse } from "next/server"
-import fs from "fs"
-import path from "path"
+import { createClient } from "@supabase/supabase-js"
 
-const DATA_PATH = path.join(process.cwd(), "data", "companies.json")
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SECRET_KEY!
+)
 
-function readCompanies() {
-  const raw = fs.readFileSync(DATA_PATH, "utf-8")
-  return JSON.parse(raw)
-}
-
-function writeCompanies(companies: any[]) {
-  fs.writeFileSync(DATA_PATH, JSON.stringify(companies, null, 2), "utf-8")
-}
-
-// PATCH /api/companies/[id] — update a single company
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const updates = await req.json()
-    const companies = readCompanies()
-    const index = companies.findIndex((c: any) => c.id === params.id)
-    if (index === -1) {
-      return NextResponse.json({ error: "Company not found" }, { status: 404 })
-    }
-    companies[index] = { ...companies[index], ...updates }
-    writeCompanies(companies)
-    return NextResponse.json({ ok: true, company: companies[index] })
-  } catch (err) {
+    const { data: row, error: fetchError } = await supabase
+      .from("companies").select("data").eq("id", params.id).single()
+    if (fetchError || !row) return NextResponse.json({ error: "Company not found" }, { status: 404 })
+    const updated = { ...row.data, ...updates }
+    const { error } = await supabase.from("companies").update({ data: updated }).eq("id", params.id)
+    if (error) throw error
+    return NextResponse.json({ ok: true, company: updated })
+  } catch {
     return NextResponse.json({ error: "Failed to update company" }, { status: 500 })
   }
 }
 
-// DELETE /api/companies/[id] — remove a company
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
-    const companies = readCompanies()
-    const filtered = companies.filter((c: any) => c.id !== params.id)
-    if (filtered.length === companies.length) {
-      return NextResponse.json({ error: "Company not found" }, { status: 404 })
-    }
-    writeCompanies(filtered)
+    const { error } = await supabase.from("companies").delete().eq("id", params.id)
+    if (error) throw error
     return NextResponse.json({ ok: true })
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete company" }, { status: 500 })
   }
 }

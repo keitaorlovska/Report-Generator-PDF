@@ -1,58 +1,57 @@
 // app/api/companies/route.ts
 import { NextResponse } from "next/server"
-import fs from "fs"
-import path from "path"
+import { createClient } from "@supabase/supabase-js"
 
-const DATA_PATH = path.join(process.cwd(), "data", "companies.json")
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SECRET_KEY!
+)
 
-function readCompanies() {
-  const raw = fs.readFileSync(DATA_PATH, "utf-8")
-  return JSON.parse(raw)
+async function readCompanies() {
+  const { data, error } = await supabase.from("companies").select("data")
+  if (error) throw error
+  return data.map((row: any) => row.data)
 }
 
-function writeCompanies(companies: any[]) {
-  fs.writeFileSync(DATA_PATH, JSON.stringify(companies, null, 2), "utf-8")
+async function writeCompanies(companies: any[]) {
+  // Delete all and re-insert
+  await supabase.from("companies").delete().neq("id", "")
+  if (companies.length > 0) {
+    const rows = companies.map((c: any) => ({ id: c.id, data: c }))
+    const { error } = await supabase.from("companies").insert(rows)
+    if (error) throw error
+  }
 }
 
-// GET /api/companies — return full list
 export async function GET() {
   try {
-    const companies = readCompanies()
-    return NextResponse.json(companies)
+    return NextResponse.json(await readCompanies())
   } catch (err) {
     return NextResponse.json({ error: "Failed to read companies" }, { status: 500 })
   }
 }
 
-// PUT /api/companies — replace full list (for reorder)
 export async function PUT(req: Request) {
   try {
     const companies = await req.json()
-    if (!Array.isArray(companies)) {
-      return NextResponse.json({ error: "Expected an array" }, { status: 400 })
-    }
-    writeCompanies(companies)
+    if (!Array.isArray(companies)) return NextResponse.json({ error: "Expected array" }, { status: 400 })
+    await writeCompanies(companies)
     return NextResponse.json({ ok: true })
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Failed to write companies" }, { status: 500 })
   }
 }
 
-// POST /api/companies — add a new company
 export async function POST(req: Request) {
   try {
     const company = await req.json()
-    if (!company.id || !company.name) {
-      return NextResponse.json({ error: "id and name are required" }, { status: 400 })
-    }
-    const companies = readCompanies()
-    if (companies.find((c: any) => c.id === company.id)) {
-      return NextResponse.json({ error: "Company with this ID already exists" }, { status: 409 })
-    }
-    companies.push(company)
-    writeCompanies(companies)
+    if (!company.id || !company.name) return NextResponse.json({ error: "id and name required" }, { status: 400 })
+    const { data: existing } = await supabase.from("companies").select("id").eq("id", company.id).single()
+    if (existing) return NextResponse.json({ error: "Already exists" }, { status: 409 })
+    const { error } = await supabase.from("companies").insert({ id: company.id, data: company })
+    if (error) throw error
     return NextResponse.json({ ok: true, company })
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Failed to add company" }, { status: 500 })
   }
 }

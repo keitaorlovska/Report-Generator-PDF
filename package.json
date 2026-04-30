@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.105.1",
     "@upstash/redis": "1.37.0",
     "@vercel/speed-insights": "2.0.0",
     "class-variance-authority": "^0.7.0",
