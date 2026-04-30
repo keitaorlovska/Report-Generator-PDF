@@ -1,14 +1,13 @@
 ﻿"use server";
 
 import OpenAI from "openai";
-import fs from "fs";
-import path from "path";
 import { setArticles, type StoredArticle } from "@/lib/memory-store";
 import type { Company } from "@/data/companies";
 
-const QUERY_OVERRIDES: Record<string, string> = {
-  "AG Insurance": "AG Insurance Belgium",
-  "Huseierne": "Huseierne Norge",
+const COUNTRY_NAMES: Record<string, string> = {
+  GB: "UK", US: "United States", DE: "Germany", BE: "Belgium",
+  NL: "Netherlands", NO: "Norway", RO: "Romania", SA: "Saudi Arabia",
+  EU: "Europe",
 };
 
 type PerplexityResult = {
@@ -29,16 +28,15 @@ function extractJson(content: string) {
   return match ? match[0] : content;
 }
 
-function loadCompanies(): Company[] {
-  try {
-    const raw = fs.readFileSync(
-      path.join(process.cwd(), "data", "companies.json"),
-      "utf-8"
-    );
-    return JSON.parse(raw);
-  } catch {
-    return [];
+function buildQuery(company: Company): string {
+  const parts = [company.name];
+  if (company.ticker) parts.push(`(${company.ticker})`);
+  if (company.country) {
+    const countryName = COUNTRY_NAMES[company.country] ?? company.country;
+    parts.push(countryName);
   }
+  if (company.industry) parts.push(company.industry);
+  return parts.join(" ");
 }
 
 export async function scrapeNewsAction(selectedCompanyIds?: string[]) {
@@ -52,29 +50,30 @@ export async function scrapeNewsAction(selectedCompanyIds?: string[]) {
     baseURL: "https://api.perplexity.ai",
   });
 
-  const allCompanies = loadCompanies();
+  // Load companies from Supabase via API
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/api/companies`);
+  const allCompanies: Company[] = await res.json();
   const companyMap = new Map(allCompanies.map((c) => [c.id, c]));
 
   const companiesToScrape: Company[] =
     selectedCompanyIds && selectedCompanyIds.length > 0
-      ? selectedCompanyIds
-          .map((id) => companyMap.get(id))
-          .filter((c): c is Company => c !== undefined)
+      ? selectedCompanyIds.map((id) => companyMap.get(id)).filter((c): c is Company => c !== undefined)
       : allCompanies;
 
   const allArticles: StoredArticle[] = [];
 
   for (const company of companiesToScrape) {
-    const query = QUERY_OVERRIDES[company.name] ?? company.name;
+    const query = buildQuery(company);
 
-    const response = await perplexity.chat.completions.create({
-      model: "sonar",
-      temperature: 0.2,
-      max_tokens: 3500,
+    const response = await (perplexity.chat.completions.create as any)({
+      model: "sonar-pro",
+      temperature: 0.1,
+      max_tokens: 4000,
+      search_recency_filter: "week",
       messages: [
         {
           role: "system",
-          content: `You are a media intelligence analyst.
+          content: `You are a media intelligence analyst specializing in corporate news monitoring.
 Return STRICT JSON only:
 {
   "company": "string",
@@ -82,7 +81,7 @@ Return STRICT JSON only:
     {
       "headline": "string",
       "source": "string",
-      "published_at": "string",
+      "published_at": "ISO date string",
       "link": "string",
       "summary": "string",
       "tone": "positive|neutral|negative",
@@ -92,14 +91,16 @@ Return STRICT JSON only:
 }
 
 Rules:
-- Focus on the last 24 hours. If fewer than 8 items exist, expand to last 7 days.
-- Every mention MUST have a direct public link.
-- Deduplicate similar stories.
-- Aim for 10â€“15 mentions when possible.`,
+- Focus on the last 7 days. Prioritize the most recent items first.
+- Every mention MUST have a real, direct, publicly accessible URL.
+- Include financial news, regulatory news, partnerships, leadership changes, controversies.
+- Deduplicate — do not include the same story from multiple sources.
+- Aim for 10–15 high quality mentions.
+- Never invent or hallucinate URLs or headlines.`,
         },
         {
           role: "user",
-          content: `Collect recent news mentions about: ${query}. Return only valid JSON.`,
+          content: `Find the most recent and important news about: ${query}. Return only valid JSON.`,
         },
       ],
     });
@@ -130,7 +131,7 @@ Rules:
     }
   }
 
-  await setArticles(allArticles);
+  setArticles(allArticles);
 
   return {
     ok: true,
@@ -138,7 +139,3 @@ Rules:
     articles: allArticles.slice(0, 10),
   };
 }
-
-
-
-
