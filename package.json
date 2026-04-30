@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.78.0",
     "@upstash/redis": "1.37.0",
     "@vercel/speed-insights": "2.0.0",
     "class-variance-authority": "^0.7.0",
