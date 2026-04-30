@@ -1,7 +1,7 @@
 ﻿"use server";
 
 import OpenAI from "openai";
-import { setArticles, type StoredArticle } from "@/lib/memory-store";
+import { setArticles, getArticles, type StoredArticle } from "@/lib/memory-store";
 import type { Company } from "@/data/companies";
 
 type PerplexityResult = {
@@ -34,7 +34,6 @@ async function fetchFromNewsAPI(company: Company): Promise<StoredArticle[]> {
 
   const query = encodeURIComponent(buildQuery(company));
   const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
   const url = `https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&language=en&pageSize=15&from=${from}&apiKey=${apiKey}`;
 
   try {
@@ -142,7 +141,6 @@ export async function scrapeNewsAction(selectedCompanyIds?: string[]) {
     baseURL: "https://api.perplexity.ai",
   });
 
-  // Load companies from API (Supabase-backed)
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const res = await fetch(`${baseUrl}/api/companies`);
   const allCompanies: Company[] = await res.json();
@@ -150,7 +148,9 @@ export async function scrapeNewsAction(selectedCompanyIds?: string[]) {
 
   const companiesToScrape: Company[] =
     selectedCompanyIds && selectedCompanyIds.length > 0
-      ? selectedCompanyIds.map((id) => companyMap.get(id)).filter((c): c is Company => c !== undefined)
+      ? selectedCompanyIds
+          .map((id) => companyMap.get(id))
+          .filter((c): c is Company => c !== undefined)
       : allCompanies;
 
   const allArticles: StoredArticle[] = [];
@@ -203,9 +203,9 @@ export async function scrapeOneCompanyAction(companyName: string) {
     return true;
   });
 
-  const existing = (await import("@/lib/memory-store")).getArticles();
+  const existing: StoredArticle[] = getArticles();
   const updated = [...existing.filter((a) => a.company !== companyName), ...merged];
-  (await import("@/lib/memory-store")).setArticles(updated);
+  setArticles(updated);
 
   return { ok: true, count: merged.length, articles: merged.slice(0, 10) };
 }
