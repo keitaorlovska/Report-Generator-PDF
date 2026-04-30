@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import OpenAI from "openai";
 import { setArticles, getArticles, type StoredArticle } from "@/lib/memory-store";
@@ -27,7 +27,7 @@ function buildQuery(company: Company): string {
   return company.name;
 }
 
-// ── NewsAPI fetch (real-time, minutes delay) ──────────────────────────────
+// -- NewsAPI fetch (real-time, minutes delay) ------------------------------
 async function fetchFromNewsAPI(company: Company): Promise<StoredArticle[]> {
   const apiKey = process.env.NEWSAPI_KEY;
   if (!apiKey) return [];
@@ -58,7 +58,7 @@ async function fetchFromNewsAPI(company: Company): Promise<StoredArticle[]> {
   }
 }
 
-// ── Perplexity fetch (fallback, broader search) ───────────────────────────
+// -- Perplexity fetch (fallback, broader search) ---------------------------
 async function fetchFromPerplexity(
   company: Company,
   perplexity: OpenAI
@@ -95,7 +95,7 @@ Rules:
 - PRIORITIZE: Reuters, Bloomberg, Financial Times, Yahoo Finance, BBC, AP, CNBC, Forbes.
 - Every mention MUST have a real, direct, publicly accessible URL.
 - Include financial, regulatory, partnerships, leadership changes, controversies.
-- Deduplicate similar stories. Aim for 10–15 mentions.
+- Deduplicate similar stories. Aim for 10�15 mentions.
 - Never invent URLs or headlines.`,
       },
       {
@@ -129,7 +129,7 @@ Rules:
     }));
 }
 
-// ── Main export ───────────────────────────────────────────────────────────
+// -- Main export -----------------------------------------------------------
 export async function scrapeNewsAction(selectedCompanyIds?: string[]) {
   const perplexityKey = process.env.PERPLEXITY_API_KEY;
   if (!perplexityKey) {
@@ -203,7 +203,7 @@ export async function scrapeOneCompanyAction(companyName: string) {
     return true;
   });
 
-  const existing: StoredArticle[] = getArticles();
+  const existing: StoredArticle[] = await getArticles();
   const updated = [...existing.filter((a) => a.company !== companyName), ...merged];
   setArticles(updated);
 
