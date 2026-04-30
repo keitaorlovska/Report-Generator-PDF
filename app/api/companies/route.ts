@@ -1,20 +1,31 @@
 // app/api/companies/route.ts
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import fs from "fs"
+import path from "path"
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SECRET_KEY!
 )
 
+function readFallback() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(process.cwd(), "data", "companies.json"), "utf-8"))
+  } catch {
+    return []
+  }
+}
+
 async function readCompanies() {
   const { data, error } = await supabase.from("companies").select("data")
   if (error) throw error
-  return data.map((row: any) => row.data)
+  const companies = data.map((row: any) => row.data)
+  if (companies.length === 0) return readFallback()
+  return companies
 }
 
 async function writeCompanies(companies: any[]) {
-  // Delete all and re-insert
   await supabase.from("companies").delete().neq("id", "")
   if (companies.length > 0) {
     const rows = companies.map((c: any) => ({ id: c.id, data: c }))
@@ -26,8 +37,8 @@ async function writeCompanies(companies: any[]) {
 export async function GET() {
   try {
     return NextResponse.json(await readCompanies())
-  } catch (err) {
-    return NextResponse.json({ error: "Failed to read companies" }, { status: 500 })
+  } catch {
+    return NextResponse.json(readFallback())
   }
 }
 
