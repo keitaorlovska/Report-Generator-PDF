@@ -29,14 +29,10 @@ function extractJson(content: string) {
 }
 
 function buildQuery(company: Company): string {
-  const parts = [company.name];
-  if (company.ticker) parts.push(`(${company.ticker})`);
-  if (company.country) {
-    const countryName = COUNTRY_NAMES[company.country] ?? company.country;
-    parts.push(countryName);
-  }
-  if (company.industry) parts.push(company.industry);
-  return parts.join(" ");
+  // Keep query simple — adding country/industry narrows results too much
+  // and causes geographic/sector bias, missing global stories
+  if (company.ticker) return `${company.name} ${company.ticker}`;
+  return company.name;
 }
 
 export async function scrapeNewsAction(selectedCompanyIds?: string[]) {
